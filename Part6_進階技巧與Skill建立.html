@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 6 - 進階技巧與 Skill 建立</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 20px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 12px; }
+        .nav-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .prev-arrow { left: 30px; } .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 40px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); padding: 35px 45px; max-width: 1400px; width: 95%; max-height: 88vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 40px; margin-bottom: 18px; text-align: center; }
+        h2 { color: #764ba2; font-size: 28px; margin-bottom: 18px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h3 { color: #667eea; font-size: 20px; margin: 18px 0 10px 0; }
+        p, li { font-size: 16px; line-height: 1.7; color: #444; margin-bottom: 8px; }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; }
+        pre { background: #282c34; color: #abb2bf; padding: 15px; border-radius: 10px; margin: 12px 0; font-size: 13px; font-family: 'Consolas', monospace; overflow-x: auto; }
+        .box { padding: 12px 18px; border-radius: 10px; margin: 12px 0; border-left: 4px solid; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 15px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin: 2px; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 8px 15px; background: rgba(0,0,0,0.3); border-radius: 25px; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.4); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cover-subtitle { font-size: 22px; color: #764ba2; margin-bottom: 20px; }
+        .cover-info { font-size: 15px; color: #888; margin-top: 25px; }
+        .section-divider { text-align: center; padding: 25px; }
+        .section-divider h1 { font-size: 42px; }
+        .section-divider p { font-size: 18px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .prompt-box { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 10px; margin: 10px 0; font-family: 'Consolas', monospace; font-size: 13px; white-space: pre-wrap; border-left: 4px solid #667eea; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 6 - 進階技巧與 Skill 建立</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">首頁</a>
+            <a href="Part5_Prompt設計與內容生成.html" class="nav-btn">← 上一章</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 12</span>
+        </div>
+    </div>
+
+    <div class="slide-container">
+
+        <!-- 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 6：進階技巧與 Skill 建立</h1>
+                <p class="cover-subtitle">打造你的 AI 協作說明書</p>
+                <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">Skill</span>
+                    <span class="tag-badge">README.md</span>
+                    <span class="tag-badge">可重複使用</span>
+                    <span class="tag-badge">GitHub</span>
+                </div>
+                <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊<br>Day 1 進階內容</p>
+            </div>
+        </div>
+
+        <!-- Skill 概念介紹 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <h1>🚀 進階：建立你的 AI 協作 Skill</h1>
+                <p>讓 AI 一看就懂，快速幫你做簡報</p>
+            </div>
+        </div>
+
+        <!-- 什麼是 Skill -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💡 什麼是 Skill？</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>Skill = AI 的「說明書」</h3>
+                        <p>把你今天做的所有東西打包成一份文件：</p>
+                        <ul>
+                            <li>✅ HTML 模板的結構說明</li>
+                            <li>✅ 5 個 Prompt 組合</li>
+                            <li>✅ 工作流程步驟</li>
+                            <li>✅ 注意事項與規範</li>
+                        </ul>
+                        <div class="box success">
+                            <strong>好處：</strong>以後只要告訴 AI「請看這份 Skill」，AI 就能快速理解你的需求！
+                        </div>
+                    </div>
+                    <div>
+                        <h3>沒有 Skill vs 有 Skill</h3>
+                        <table>
+                            <tr><th>沒有 Skill</th><th>有 Skill</th></tr>
+                            <tr><td>每次都要重新解釋</td><td>一次設定，永久使用</td></tr>
+                            <tr><td>結果不穩定</td><td>品質一致</td></tr>
+                            <tr><td>花時間溝通</td><td>快速產出</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill 檔案結構 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📁 Skill 檔案結構</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>建議的資料夾結構</h3>
+                        <pre>我的簡報Skill/
+├── README.md          ← Skill 說明書（最重要！）
+├── template.html      ← HTML 簡報模板
+├── prompts/
+│   ├── 標題生成器.md
+│   ├── 重點條列器.md
+│   ├── 開場白生成器.md
+│   ├── 結語生成器.md
+│   └── 單頁內容生成器.md
+├── examples/
+│   └── 範例簡報.html
+└── assets/
+    └── 常用圖片素材/</pre>
+                    </div>
+                    <div>
+                        <h3>每個檔案的用途</h3>
+                        <ul>
+                            <li><strong>README.md</strong>：告訴 AI 這個 Skill 怎麼用</li>
+                            <li><strong>template.html</strong>：簡報骨架</li>
+                            <li><strong>prompts/</strong>：所有 Prompt 模板</li>
+                            <li><strong>examples/</strong>：成品範例</li>
+                            <li><strong>assets/</strong>：素材庫</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- README.md 寫法 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 README.md 怎麼寫？</h2>
+                <pre style="font-size: 12px; max-height: 450px; overflow-y: auto;"># HTML 簡報製作 Skill
+
+## 這是什麼？
+這是一套用於製作 HTML 簡報的工具組，包含模板和 Prompt。
+
+## 使用方式
+1. 複製 template.html 作為新簡報的基礎
+2. 使用 prompts/ 資料夾中的 Prompt 生成內容
+3. 把生成的內容填入模板的【】標記處
+
+## 模板結構說明
+- 封面頁：【簡報標題】【副標題】【講者姓名】
+- 內容頁：【章節標題】【重點1-5】
+- 結尾頁：【感謝文字】【聯絡資訊】
+
+## Prompt 使用順序
+1. 先用「標題生成器」想標題
+2. 用「重點條列器」整理每頁重點
+3. 用「開場白生成器」寫開場
+4. 用「結語生成器」寫結尾
+
+## 注意事項
+- 每頁重點不超過 5 個
+- 每個重點不超過 20 字
+- 配色請遵循模板的預設值</pre>
+            </div>
+        </div>
+
+        <!-- 如何使用 Skill -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 如何告訴 AI 使用你的 Skill？</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>方法 1：直接貼 README</h3>
+                        <pre style="font-size: 12px;">請根據以下 Skill 說明，
+幫我製作一份關於「AI 入門」的簡報：
+
+[貼上 README.md 的內容]
+
+現在請幫我生成封面頁的內容。</pre>
+                        <h3>方法 2：上傳整個資料夾</h3>
+                        <p>如果 AI 工具支援上傳檔案，可以直接上傳整個 Skill 資料夾。</p>
+                    </div>
+                    <div>
+                        <h3>方法 3：存成 GitHub Repo</h3>
+                        <pre style="font-size: 12px;">請參考這個 GitHub 專案的 Skill：
+https://github.com/你的帳號/html-slides-skill
+
+然後幫我製作一份關於
+「時間管理」的簡報。</pre>
+                        <div class="box info">
+                            <strong>最推薦：</strong>放到 GitHub，這樣隨時都能給 AI 看！
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill 實際對話範例 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💬 實際對話範例</h2>
+                <div class="box" style="background: #f8f9fa; border-color: #6c757d; color: #333;">
+                    <strong>你：</strong><br>
+                    我有一套 HTML 簡報製作的 Skill，請先閱讀以下說明：<br><br>
+                    [貼上 README.md 內容]<br><br>
+                    現在我要做一份「健康飲食入門」的簡報，預計 8 頁。<br>
+                    請先幫我規劃大綱，然後用「標題生成器」Prompt 幫每頁想標題。
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>AI 回覆：</strong><br>
+                    好的，我已經理解你的 Skill 規範。以下是「健康飲食入門」的簡報大綱：<br><br>
+                    1. 封面頁：健康飲食入門<br>
+                    2. 為什麼要健康飲食？<br>
+                    3. 五大營養素介紹<br>
+                    ... (AI 會遵循你的規範產出)
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill 的好處 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>✨ 建立 Skill 的 5 大好處</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(5, 1fr);">
+                    <div class="concept-card">
+                        <h3>1. 省時間</h3>
+                        <p>不用每次都重新解釋需求</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 品質穩定</h3>
+                        <p>AI 遵循相同規範產出</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 可累積</h3>
+                        <p>持續優化，越用越好</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 可分享</h3>
+                        <p>團隊/朋友都能使用</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>5. 可擴展</h3>
+                        <p>加入新 Prompt、新模板</p>
+                    </div>
+                </div>
+                <div class="box warning" style="margin-top: 20px;">
+                    <strong>今日作業：</strong>把你今天做的模板和 Prompt 整理成一個 Skill 資料夾！
+                </div>
+            </div>
+        </div>
+
+        <!-- Q&A -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <h1>Q &amp; A</h1>
+                <p>有任何問題嗎？</p>
+                <div style="margin-top: 30px;">
+                    <p style="font-size: 18px; color: #666;">
+                        今天學了很多，有不懂的地方很正常！<br>
+                        現在提問，或是課後在社團發問都可以。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day 1 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Day 1 重點回顧</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>HTML 基礎</h3>
+                        <ul>
+                            <li>HTML = 網頁的骨架</li>
+                            <li>標籤、元素、屬性、Class</li>
+                            <li>Section = 簡報的一頁</li>
+                        </ul>
+                        <h3>模板化</h3>
+                        <ul>
+                            <li>【】標記可替換內容</li>
+                            <li>註解說明每頁用途</li>
+                            <li>一次設計，重複使用</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>AI 協作</h3>
+                        <ul>
+                            <li>Prompt 三要素：角色、任務、規格</li>
+                            <li>追問：說明問題 + 給方向</li>
+                            <li>NotebookLM：資料整理神器</li>
+                        </ul>
+                        <h3>Skill 建立</h3>
+                        <ul>
+                            <li>README.md 說明書</li>
+                            <li>資料夾結構整理</li>
+                            <li>放到 GitHub 分享</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結尾頁 -->
+        <div class="slide">
+            <div class="content-card cover-content">
+                <h1>Day 1 完成！</h1>
+                <p class="cover-subtitle">感謝你今天的努力</p>
+                <p style="font-size: 17px; color: #666; margin-top: 15px;">
+                    完成 12 個實作練習<br>
+                    掌握 HTML 基礎與 AI 協作流程<br>
+                    明天繼續完成剩下的 12 個！
+                </p>
+                <div style="margin-top: 25px;">
+                    <span class="tag-badge">HTML 模板</span>
+                    <span class="tag-badge">5 個 Prompt</span>
+                    <span class="tag-badge">NotebookLM 素材</span>
+                    <span class="tag-badge">初版簡報</span>
+                    <span class="tag-badge">Skill</span>
+                </div>
+                <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&#10095;</button>
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        function init() { createIndicators(); showSlide(0); updateButtons(); document.addEventListener('keydown', handleKeydown); }
+        function handleKeydown(e) { if (e.key === 'ArrowLeft') changeSlide(-1); if (e.key === 'ArrowRight') changeSlide(1); }
+        function createIndicators() { const container = document.getElementById('indicatorContainer'); slides.forEach((_, i) => { const dot = document.createElement('div'); dot.className = 'dot'; dot.onclick = () => goToSlide(i); container.appendChild(dot); }); }
+        function showSlide(index) { if (index < 0) index = 0; if (index >= totalSlides) index = totalSlides - 1; slides.forEach(s => s.classList.remove('active')); slides[index].classList.add('active'); currentSlide = index; document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === index)); updateButtons(); document.getElementById('pageIndicator').textContent = `${index + 1} / ${totalSlides}`; }
+        function changeSlide(d) { showSlide(currentSlide + d); }
+        function goToSlide(i) { showSlide(i); }
+        function updateButtons() { document.getElementById('prevBtn').disabled = currentSlide === 0; document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1; }
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        init();
+    </script>
+</body>
+</html>
