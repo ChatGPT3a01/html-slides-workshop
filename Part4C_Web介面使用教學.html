@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 4C - Web 介面使用教學</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 18px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 10px; }
+        .nav-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .prev-arrow { left: 20px; } .next-arrow { right: 20px; }
+        .nav-arrow:disabled { opacity: 0.3; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 30px 80px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); padding: 35px 45px; max-width: 1400px; width: 100%; max-height: 85vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 15px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h3 { color: #667eea; font-size: 18px; margin: 15px 0 10px 0; }
+        p, li { font-size: 15px; line-height: 1.7; color: #444; margin-bottom: 8px; }
+        ul, ol { margin-left: 25px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 18px; border-radius: 10px; margin: 12px 0; font-size: 14px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; line-height: 1.5; }
+        .box { padding: 15px 20px; border-radius: 10px; margin: 15px 0; border-left: 4px solid; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; text-align: center; }
+        .concept-card h3 { margin-top: 0; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; margin: 2px; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 6px 12px; background: rgba(0,0,0,0.3); border-radius: 20px; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.3); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 42px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cover-subtitle { font-size: 20px; color: #764ba2; margin-bottom: 15px; }
+        .cover-info { font-size: 14px; color: #888; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .command-example { background: #f8f9ff; border: 2px solid #e8ecff; border-radius: 12px; padding: 15px; margin: 10px 0; }
+        .command-example .cmd { background: #1e1e1e; color: #9cdcfe; padding: 10px 15px; border-radius: 8px; font-family: 'Consolas', monospace; margin: 8px 0; font-size: 14px; }
+        .command-example .result { color: #666; font-size: 13px; margin-top: 5px; }
+        .ui-layout { display: grid; grid-template-columns: 80px 1fr 250px; gap: 15px; background: #f5f5f5; padding: 15px; border-radius: 12px; margin: 15px 0; }
+        .ui-sidebar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 15px; color: white; text-align: center; }
+        .ui-main { background: white; border-radius: 10px; padding: 15px; }
+        .ui-panel { background: white; border-radius: 10px; padding: 15px; }
+        .icon-btn { display: inline-block; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 8px; margin: 5px 0; line-height: 40px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 4C - Web 介面使用教學</div>
+        <div class="nav-buttons">
+            <a href="Part4_資料收集與NotebookLM.html" class="nav-btn">← Part 4 總覽</a>
+            <a href="Part4B_安裝自動化工具.html" class="nav-btn">← 上一節</a>
+            <a href="Part4D_部署與遠端存取.html" class="nav-btn">下一節 4D →</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 12</span>
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <!-- 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 4C：Web 介面使用教學</h1>
+                <p class="cover-subtitle">用自然語言控制 NotebookLM</p>
+                <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">自然語言</span>
+                    <span class="tag-badge">Web GUI</span>
+                    <span class="tag-badge">一鍵生成</span>
+                    <span class="tag-badge">批次操作</span>
+                </div>
+                <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+        <!-- 介面總覽 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Web GUI 介面總覽</h2>
+                <p>啟動後訪問 <code>http://localhost:5000</code>，你會看到以下介面：</p>
+
+                <div class="ui-layout">
+                    <div class="ui-sidebar">
+                        <div style="font-size: 12px; margin-bottom: 10px;">快捷按鈕</div>
+                        <div class="icon-btn">🎙️</div>
+                        <div class="icon-btn">🎬</div>
+                        <div class="icon-btn">📊</div>
+                        <div class="icon-btn">❓</div>
+                        <div class="icon-btn">🃏</div>
+                        <div class="icon-btn">🧠</div>
+                    </div>
+                    <div class="ui-main">
+                        <div style="font-size: 12px; color: #666;">筆記本選擇 ▼</div>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                            <span style="color: #999;">輸入自然語言指令...</span>
+                        </div>
+                        <div style="background: #667eea; color: white; padding: 8px 20px; border-radius: 20px; display: inline-block; font-size: 14px;">執行</div>
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 8px; min-height: 100px;">
+                            <div style="color: #666; font-size: 13px;">執行結果會顯示在這裡...</div>
+                        </div>
+                    </div>
+                    <div class="ui-panel">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 10px;">任務狀態</div>
+                        <div style="background: #d4edda; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 8px;">
+                            ✓ 已登入
+                        </div>
+                        <div style="background: #f8f9ff; padding: 10px; border-radius: 8px; font-size: 12px;">
+                            背景任務列表...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="box info">
+                    <strong>介面區域說明：</strong><br>
+                    • <strong>左側</strong>：快捷按鈕，一鍵執行常用功能<br>
+                    • <strong>中間</strong>：主要操作區，輸入指令並查看結果<br>
+                    • <strong>右側</strong>：任務狀態，監控背景任務進度
+                </div>
+            </div>
+        </div>
+
+        <!-- 基本操作流程 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>基本操作流程</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>步驟流程</h3>
+                        <div style="background: #f8f9ff; padding: 20px; border-radius: 12px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <span style="background: #667eea; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">1</span>
+                                <span>選擇筆記本（左上角下拉選單）</span>
+                            </div>
+                            <div style="text-align: center; color: #667eea; margin: 5px 0;">↓</div>
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <span style="background: #667eea; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">2</span>
+                                <span>輸入自然語言指令</span>
+                            </div>
+                            <div style="text-align: center; color: #667eea; margin: 5px 0;">↓</div>
+                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                <span style="background: #667eea; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">3</span>
+                                <span>點擊「執行」或按 Enter</span>
+                            </div>
+                            <div style="text-align: center; color: #667eea; margin: 5px 0;">↓</div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="background: #28a745; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">✓</span>
+                                <span>查看執行結果</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>登入狀態確認</h3>
+                        <p>右上角會顯示登入狀態：</p>
+                        <ul>
+                            <li><span style="color: #28a745;">🟢 已登入</span>：可以開始使用</li>
+                            <li><span style="color: #dc3545;">🔴 未登入</span>：請先執行 <code>notebooklm login</code></li>
+                        </ul>
+
+                        <h3>選擇筆記本</h3>
+                        <p>大部分操作需要先選擇筆記本：</p>
+                        <ul>
+                            <li>點擊下拉選單選擇</li>
+                            <li>或用指令「列出筆記本」先查看</li>
+                        </ul>
+
+                        <div class="box warning">
+                            <strong>注意：</strong>如果沒選筆記本就執行需要筆記本的操作，會出現錯誤提示。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自然語言指令：筆記本管理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>自然語言指令：筆記本管理</h2>
+                <p>用中文下指令，系統會自動解析並執行。</p>
+
+                <div class="command-example">
+                    <h3>列出所有筆記本</h3>
+                    <div class="cmd">列出我所有的筆記本</div>
+                    <div class="cmd">顯示筆記本</div>
+                    <div class="cmd">我的筆記本有哪些</div>
+                    <div class="result">→ 會列出你 NotebookLM 中所有筆記本的名稱和 ID</div>
+                </div>
+
+                <div class="command-example">
+                    <h3>建立新筆記本</h3>
+                    <div class="cmd">建立一個叫做「AI研究」的筆記本</div>
+                    <div class="cmd">新增筆記本「專案報告」</div>
+                    <div class="cmd">創建筆記本 我的學習筆記</div>
+                    <div class="result">→ 會建立一個新的筆記本並回傳 ID</div>
+                </div>
+
+                <div class="command-example">
+                    <h3>刪除筆記本</h3>
+                    <div class="cmd">刪除這個筆記本</div>
+                    <div class="cmd">移除筆記本</div>
+                    <div class="result">→ 刪除目前選擇的筆記本（需先選擇）</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自然語言指令：來源管理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>自然語言指令：來源管理</h2>
+
+                <div class="command-example">
+                    <h3>列出來源</h3>
+                    <div class="cmd">列出這個筆記本的來源</div>
+                    <div class="cmd">顯示所有來源</div>
+                    <div class="result">→ 列出目前筆記本中的所有資料來源</div>
+                </div>
+
+                <div class="command-example">
+                    <h3>新增網頁來源</h3>
+                    <div class="cmd">新增這個網址 https://example.com/article</div>
+                    <div class="cmd">加入網頁 https://...</div>
+                    <div class="cmd">匯入這個連結 https://...</div>
+                    <div class="result">→ 將網頁內容匯入到筆記本中</div>
+                </div>
+
+                <div class="command-example">
+                    <h3>新增 YouTube 來源</h3>
+                    <div class="cmd">加入這個 YouTube 影片 https://youtube.com/watch?v=...</div>
+                    <div class="cmd">匯入 YouTube https://youtu.be/...</div>
+                    <div class="result">→ 將 YouTube 影片的字幕匯入到筆記本中</div>
+                </div>
+
+                <div class="box info">
+                    <strong>小技巧：</strong>指令中包含 URL 時，系統會自動辨識並處理。
+                </div>
+            </div>
+        </div>
+
+        <!-- 自然語言指令：內容生成 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>自然語言指令：內容生成</h2>
+                <p>這是最強大的功能！用一句話生成各種內容。</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="command-example">
+                            <h3>🎙️ 生成 Podcast</h3>
+                            <div class="cmd">幫我生成 Podcast</div>
+                            <div class="cmd">製作音訊</div>
+                            <div class="cmd">產生播客</div>
+                            <div class="result">→ 生成兩人對話風格的 Podcast（約 2-5 分鐘）</div>
+                        </div>
+
+                        <div class="command-example">
+                            <h3>🎬 生成影片</h3>
+                            <div class="cmd">幫我生成影片</div>
+                            <div class="cmd">製作視頻</div>
+                            <div class="result">→ 生成影片內容</div>
+                        </div>
+
+                        <div class="command-example">
+                            <h3>🧠 生成心智圖</h3>
+                            <div class="cmd">製作心智圖</div>
+                            <div class="cmd">生成 mind map</div>
+                            <div class="result">→ 生成概念關係圖</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="command-example">
+                            <h3>❓ 生成測驗</h3>
+                            <div class="cmd">生成 10 題測驗</div>
+                            <div class="cmd">製作考題</div>
+                            <div class="result">→ 生成選擇題測驗</div>
+                        </div>
+
+                        <div class="command-example">
+                            <h3>🃏 生成閃卡</h3>
+                            <div class="cmd">製作閃卡</div>
+                            <div class="cmd">生成記憶卡</div>
+                            <div class="result">→ 生成複習用閃卡</div>
+                        </div>
+
+                        <div class="command-example">
+                            <h3>📄 生成報告</h3>
+                            <div class="cmd">做一份報告</div>
+                            <div class="cmd">生成摘要文件</div>
+                            <div class="result">→ 生成重點摘要報告</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快捷按鈕說明 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>快捷按鈕功能對照</h2>
+                <p>左側邊欄的圖示按鈕，滑鼠懸停可看功能名稱。</p>
+
+                <div class="concept-grid" style="grid-template-columns: repeat(5, 1fr);">
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">🎙️</div>
+                        <h3>Podcast</h3>
+                        <p style="font-size: 12px;">兩人對話<br>深度討論</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">🎬</div>
+                        <h3>影片</h3>
+                        <p style="font-size: 12px;">視頻內容<br>旁白腳本</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">📊</div>
+                        <h3>簡報</h3>
+                        <p style="font-size: 12px;">投影片<br>章節架構</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">❓</div>
+                        <h3>測驗</h3>
+                        <p style="font-size: 12px;">選擇題<br>檢測理解</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">🃏</div>
+                        <h3>閃卡</h3>
+                        <p style="font-size: 12px;">記憶卡片<br>快速複習</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">📄</div>
+                        <h3>報告</h3>
+                        <p style="font-size: 12px;">摘要文件<br>重點整理</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">🧠</div>
+                        <h3>心智圖</h3>
+                        <p style="font-size: 12px;">視覺化<br>概念關係</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">📈</div>
+                        <h3>資訊圖</h3>
+                        <p style="font-size: 12px;">數據視覺化<br>圖表呈現</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">📋</div>
+                        <h3>數據表</h3>
+                        <p style="font-size: 12px;">表格資料<br>結構化</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 32px;">🔍</div>
+                        <h3>研究</h3>
+                        <p style="font-size: 12px;">網路搜尋<br>新增來源</p>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>使用方式：</strong>先選擇筆記本，再點擊按鈕即可執行對應功能。
+                </div>
+            </div>
+        </div>
+
+        <!-- 問答功能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>自然語言指令：問答功能</h2>
+                <p>直接向筆記本中的資料提問，獲得有來源標註的回答。</p>
+
+                <div class="two-column">
+                    <div>
+                        <div class="command-example">
+                            <h3>提問範例</h3>
+                            <div class="cmd">問一下這份文件的主要觀點是什麼</div>
+                            <div class="cmd">查詢文件中提到的預算數字</div>
+                            <div class="cmd">這篇文章的結論是什麼</div>
+                            <div class="cmd">有哪些重要的統計數據</div>
+                        </div>
+
+                        <div class="box info">
+                            <strong>提問技巧：</strong><br>
+                            • 問得越具體，回答越精準<br>
+                            • 可以指定想要的格式（列表、表格）<br>
+                            • 可以要求比較、分析、總結
+                        </div>
+                    </div>
+                    <div>
+                        <h3>回答特色</h3>
+                        <div style="background: #f8f9ff; padding: 15px; border-radius: 10px; font-size: 14px;">
+                            根據您上傳的資料，主要觀點包括：<br><br>
+                            <strong>1. AI 正在改變工作方式</strong> [1]<br>
+                            文件指出，到 2025 年將有 85% 的企業...<br><br>
+                            <strong>2. 教育領域的應用</strong> [2]<br>
+                            研究顯示，AI 輔助學習可提升 30%...<br><br>
+                            <span style="color: #667eea; font-size: 12px;">點擊 [1] [2] 可查看原文出處</span>
+                        </div>
+                        <p style="margin-top: 10px; font-size: 13px; color: #666;">
+                            與一般 AI 不同，回答都有明確的來源標註！
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NLP 模式設定 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>NLP 解析模式設定</h2>
+                <p>進入「設定」頁面可以選擇自然語言解析方式。</p>
+
+                <table>
+                    <tr>
+                        <th>模式</th>
+                        <th>說明</th>
+                        <th>優點</th>
+                        <th>缺點</th>
+                        <th>費用</th>
+                    </tr>
+                    <tr>
+                        <td><strong>關鍵字匹配</strong></td>
+                        <td>用預設關鍵字判斷意圖</td>
+                        <td>快速、免費、不需網路</td>
+                        <td>理解有限，需用特定詞彙</td>
+                        <td>免費</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gemini API</strong></td>
+                        <td>用 Google AI 理解語意</td>
+                        <td>理解自然、支援複雜指令</td>
+                        <td>需要 API Key、有延遲</td>
+                        <td>需 API Key</td>
+                    </tr>
+                    <tr>
+                        <td><strong>OpenAI API</strong></td>
+                        <td>用 GPT 理解語意</td>
+                        <td>理解精準、回應靈活</td>
+                        <td>需要 API Key、有費用</td>
+                        <td>需 API Key</td>
+                    </tr>
+                </table>
+
+                <div class="box info">
+                    <strong>建議：</strong>先用「關鍵字匹配」模式，這對大多數操作已經夠用。如果發現經常解析錯誤，再考慮升級到 Gemini 或 OpenAI 模式。
+                </div>
+            </div>
+        </div>
+
+        <!-- 背景任務監控 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>背景任務監控</h2>
+                <p>某些操作（如 Podcast 生成）需要較長時間，會在背景執行。</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>任務狀態面板</h3>
+                        <p>右側面板會顯示：</p>
+                        <ul>
+                            <li>任務名稱（如「生成 Podcast」）</li>
+                            <li>執行狀態（進行中 / 完成 / 失敗）</li>
+                            <li>任務 ID</li>
+                            <li>結果預覽</li>
+                        </ul>
+
+                        <h3>長時間任務</h3>
+                        <table>
+                            <tr><th>任務</th><th>預估時間</th></tr>
+                            <tr><td>Podcast 生成</td><td>2-5 分鐘</td></tr>
+                            <tr><td>影片生成</td><td>3-8 分鐘</td></tr>
+                            <tr><td>報告生成</td><td>1-2 分鐘</td></tr>
+                            <tr><td>測驗生成</td><td>30-60 秒</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>任務狀態示意</h3>
+                        <div style="background: #f8f9ff; padding: 15px; border-radius: 10px;">
+                            <div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
+                                <span style="color: #ffc107;">⏳</span> 生成 Podcast<br>
+                                <span style="color: #856404; font-size: 12px;">進行中... (任務 ID: a1b2c3)</span>
+                            </div>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
+                                <span style="color: #28a745;">✓</span> 生成心智圖<br>
+                                <span style="color: #155724; font-size: 12px;">完成</span>
+                            </div>
+                            <div style="background: #f8d7da; padding: 10px; border-radius: 8px; font-size: 13px;">
+                                <span style="color: #dc3545;">✗</span> 生成測驗<br>
+                                <span style="color: #721c24; font-size: 12px;">失敗：未選擇筆記本</span>
+                            </div>
+                        </div>
+
+                        <div class="box warning" style="margin-top: 15px;">
+                            <strong>注意：</strong>背景任務執行時，不要關閉伺服器或瀏覽器。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主題設定 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>介面主題設定</h2>
+                <p>在設定頁面可以切換介面主題，選擇你喜歡的風格。</p>
+
+                <div class="concept-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="concept-card" style="background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
+                        <h3>簡約現代</h3>
+                        <p style="font-size: 12px;">預設主題<br>清爽簡潔</p>
+                    </div>
+                    <div class="concept-card" style="background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);">
+                        <h3>豐富視覺</h3>
+                        <p style="font-size: 12px;">漸層色彩<br>視覺豐富</p>
+                    </div>
+                    <div class="concept-card" style="background: #1a1a2e; color: white;">
+                        <h3 style="color: #eaeaea;">深色主題</h3>
+                        <p style="font-size: 12px; color: #aaa;">護眼模式<br>低光環境</p>
+                    </div>
+                    <div class="concept-card" style="background: #ffffff; border-color: #ddd;">
+                        <h3>淺色主題</h3>
+                        <p style="font-size: 12px;">純白背景<br>高對比度</p>
+                    </div>
+                </div>
+
+                <div class="box info" style="margin-top: 20px;">
+                    <strong>切換方式：</strong>點擊右上角「設定」→「主題」→ 選擇喜歡的主題
+                </div>
+            </div>
+        </div>
+
+        <!-- 完成頁 -->
+        <div class="slide">
+            <div class="content-card cover-content">
+                <h1>Part 4C 完成！</h1>
+                <p class="cover-subtitle">你已經學會使用 Web GUI 了</p>
+                <div class="concept-grid" style="margin-top: 25px;">
+                    <div class="concept-card">
+                        <h3>自然語言</h3>
+                        <p>中文下指令</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>快捷按鈕</h3>
+                        <p>一鍵執行</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>背景任務</h3>
+                        <p>監控進度</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>主題切換</h3>
+                        <p>個人化介面</p>
+                    </div>
+                </div>
+                <p class="cover-info" style="margin-top: 25px;">
+                    <a href="Part4D_部署與遠端存取.html" style="color: #667eea; font-weight: bold; text-decoration: none;">
+                        下一節：Part 4D - 部署與遠端存取 →
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&#10095;</button>
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        function init() { createIndicators(); showSlide(0); updateButtons(); document.addEventListener('keydown', handleKeydown); }
+        function handleKeydown(e) { if (e.key === 'ArrowLeft') changeSlide(-1); if (e.key === 'ArrowRight') changeSlide(1); }
+        function createIndicators() { const container = document.getElementById('indicatorContainer'); slides.forEach((_, i) => { const dot = document.createElement('div'); dot.className = 'dot'; dot.onclick = () => goToSlide(i); container.appendChild(dot); }); }
+        function showSlide(index) { if (index < 0) index = 0; if (index >= totalSlides) index = totalSlides - 1; slides.forEach(s => s.classList.remove('active')); slides[index].classList.add('active'); currentSlide = index; document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === index)); updateButtons(); document.getElementById('pageIndicator').textContent = `${index + 1} / ${totalSlides}`; }
+        function changeSlide(d) { showSlide(currentSlide + d); }
+        function goToSlide(i) { showSlide(i); }
+        function updateButtons() { document.getElementById('prevBtn').disabled = currentSlide === 0; document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1; }
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        init();
+    </script>
+</body>
+</html>

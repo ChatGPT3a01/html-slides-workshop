@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 4D - 部署與遠端存取</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 18px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 10px; }
+        .nav-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .prev-arrow { left: 20px; } .next-arrow { right: 20px; }
+        .nav-arrow:disabled { opacity: 0.3; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 30px 80px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); padding: 35px 45px; max-width: 1400px; width: 100%; max-height: 85vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 15px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h3 { color: #667eea; font-size: 18px; margin: 15px 0 10px 0; }
+        p, li { font-size: 15px; line-height: 1.7; color: #444; margin-bottom: 8px; }
+        ul, ol { margin-left: 25px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 18px; border-radius: 10px; margin: 12px 0; font-size: 13px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; line-height: 1.5; }
+        .box { padding: 15px 20px; border-radius: 10px; margin: 15px 0; border-left: 4px solid; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .error { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; margin: 2px; }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; font-weight: 700; font-size: 14px; margin-right: 10px; flex-shrink: 0; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 6px 12px; background: rgba(0,0,0,0.3); border-radius: 20px; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.3); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 42px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cover-subtitle { font-size: 20px; color: #764ba2; margin-bottom: 15px; }
+        .cover-info { font-size: 14px; color: #888; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .step-item { display: flex; align-items: flex-start; margin-bottom: 15px; }
+        .step-content { flex: 1; }
+        .deploy-option { background: #f8f9ff; border: 2px solid #e8ecff; border-radius: 15px; padding: 20px; margin: 15px 0; }
+        .deploy-option h3 { display: flex; align-items: center; gap: 10px; }
+        .deploy-option .difficulty { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; margin-left: auto; }
+        .easy { background: #d4edda; color: #155724; }
+        .medium { background: #fff3cd; color: #856404; }
+        .hard { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 4D - 部署與遠端存取</div>
+        <div class="nav-buttons">
+            <a href="Part4_資料收集與NotebookLM.html" class="nav-btn">← Part 4 總覽</a>
+            <a href="Part4C_Web介面使用教學.html" class="nav-btn">← 上一節</a>
+            <a href="Part5_Prompt設計與內容生成.html" class="nav-btn">下一章 Part 5 →</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 12</span>
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <!-- 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 4D：部署與遠端存取</h1>
+                <p class="cover-subtitle">讓你的自動化工具隨處可用</p>
+                <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">區域網路</span>
+                    <span class="tag-badge">Waitress</span>
+                    <span class="tag-badge">Docker</span>
+                    <span class="tag-badge">開機自啟</span>
+                </div>
+                <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+        <!-- 部署方式總覽 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>部署方式總覽</h2>
+                <p>根據你的需求選擇適合的部署方式。</p>
+
+                <table>
+                    <tr>
+                        <th>方式</th>
+                        <th>適用場景</th>
+                        <th>難度</th>
+                        <th>說明</th>
+                    </tr>
+                    <tr>
+                        <td><strong>本機使用</strong></td>
+                        <td>個人使用</td>
+                        <td><span class="difficulty easy">簡單</span></td>
+                        <td>直接執行 python app.py</td>
+                    </tr>
+                    <tr>
+                        <td><strong>區域網路分享</strong></td>
+                        <td>家中/辦公室多台電腦</td>
+                        <td><span class="difficulty easy">簡單</span></td>
+                        <td>同網路內其他設備可存取</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Waitress (Windows)</strong></td>
+                        <td>Windows 正式部署</td>
+                        <td><span class="difficulty medium">中等</span></td>
+                        <td>穩定的 WSGI 伺服器</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gunicorn (Linux/Mac)</strong></td>
+                        <td>Linux/macOS 正式部署</td>
+                        <td><span class="difficulty medium">中等</span></td>
+                        <td>高效能 WSGI 伺服器</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Docker 容器</strong></td>
+                        <td>跨平台、可移植</td>
+                        <td><span class="difficulty hard">進階</span></td>
+                        <td>容器化部署</td>
+                    </tr>
+                    <tr>
+                        <td><strong>開機自動啟動</strong></td>
+                        <td>伺服器長期運行</td>
+                        <td><span class="difficulty medium">中等</span></td>
+                        <td>開機後自動啟動服務</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- 方式一：本機使用 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>方式一：本機使用（最簡單）</h2>
+
+                <div class="deploy-option">
+                    <h3>🖥️ 本機開發模式 <span class="difficulty easy">簡單</span></h3>
+                    <p>適合個人測試和開發使用。</p>
+
+                    <h3>啟動方式</h3>
+                    <pre>cd notebooklm-automation
+python app.py</pre>
+
+                    <h3>存取方式</h3>
+                    <p>開啟瀏覽器，訪問：<code>http://localhost:5000</code></p>
+
+                    <div class="box info">
+                        <strong>說明：</strong><br>
+                        • 只有本機可以存取<br>
+                        • 關閉終端機視窗後服務會停止<br>
+                        • Debug 模式開啟，方便排錯
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方式二：區域網路分享 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>方式二：區域網路分享</h2>
+
+                <div class="deploy-option">
+                    <h3>🌐 區域網路存取 <span class="difficulty easy">簡單</span></h3>
+                    <p>讓同一個 WiFi/網路下的其他電腦、手機也能使用。</p>
+
+                    <div class="two-column">
+                        <div>
+                            <h3>確認設定</h3>
+                            <p>確認 <code>app.py</code> 中的設定：</p>
+                            <pre>if __name__ == '__main__':
+    app.run(
+        host='0.0.0.0',  # 關鍵！
+        port=5000,
+        debug=True
+    )</pre>
+                            <p><code>host='0.0.0.0'</code> 表示監聽所有網路介面。</p>
+                        </div>
+                        <div>
+                            <h3>查詢本機 IP</h3>
+                            <p><strong>Windows:</strong></p>
+                            <pre>ipconfig</pre>
+                            <p>找到「IPv4 位址」，例如 <code>192.168.1.100</code></p>
+
+                            <h3>其他設備存取</h3>
+                            <p>在其他電腦或手機瀏覽器輸入：</p>
+                            <pre>http://192.168.1.100:5000</pre>
+                        </div>
+                    </div>
+
+                    <div class="box warning">
+                        <strong>注意：</strong>伺服器電腦必須先執行 <code>notebooklm login</code> 完成登入。其他設備使用的是伺服器電腦的 Google 帳號。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 防火牆設定 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>防火牆設定（區域網路）</h2>
+                <p>如果其他設備無法連線，可能是防火牆阻擋。</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>Windows 防火牆</h3>
+                        <p>方法一：執行命令（管理員權限）</p>
+                        <pre>netsh advfirewall firewall add rule name="Flask" dir=in action=allow protocol=tcp localport=5000</pre>
+
+                        <p>方法二：圖形介面</p>
+                        <ol>
+                            <li>搜尋「Windows Defender 防火牆」</li>
+                            <li>點擊「進階設定」</li>
+                            <li>「輸入規則」→「新增規則」</li>
+                            <li>選擇「連接埠」→ TCP → 5000</li>
+                            <li>允許連線 → 完成</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3>macOS 防火牆</h3>
+                        <p>通常預設允許，如有問題：</p>
+                        <ol>
+                            <li>系統偏好設定 → 安全性與隱私</li>
+                            <li>防火牆 → 防火牆選項</li>
+                            <li>新增 Python 並允許</li>
+                        </ol>
+
+                        <h3>Linux 防火牆 (ufw)</h3>
+                        <pre>sudo ufw allow 5000/tcp</pre>
+
+                        <div class="box info">
+                            <strong>測試連線：</strong><br>
+                            可以在另一台電腦用瀏覽器開啟 <code>http://伺服器IP:5000</code> 測試
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方式三：Waitress -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>方式三：Waitress（Windows 正式部署）</h2>
+
+                <div class="deploy-option">
+                    <h3>⚡ Waitress WSGI 伺服器 <span class="difficulty medium">中等</span></h3>
+                    <p>比 Flask 內建伺服器更穩定，適合長期運行。</p>
+
+                    <div class="step-item">
+                        <span class="step-number">1</span>
+                        <div class="step-content">
+                            <h3>安裝 Waitress</h3>
+                            <pre>pip install waitress</pre>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-number">2</span>
+                        <div class="step-content">
+                            <h3>建立啟動腳本 <code>run_server.py</code></h3>
+                            <pre>from waitress import serve
+from app import create_app
+
+if __name__ == '__main__':
+    app = create_app('production')
+    print("=" * 50)
+    print("   NotebookLM 自動化服務")
+    print("   伺服器啟動於 http://0.0.0.0:5000")
+    print("=" * 50)
+    serve(app, host='0.0.0.0', port=5000)</pre>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-number">3</span>
+                        <div class="step-content">
+                            <h3>執行</h3>
+                            <pre>python run_server.py</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方式四：Gunicorn -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>方式四：Gunicorn（Linux/macOS 正式部署）</h2>
+
+                <div class="deploy-option">
+                    <h3>🚀 Gunicorn WSGI 伺服器 <span class="difficulty medium">中等</span></h3>
+                    <p>Linux/macOS 上最受歡迎的 Python WSGI 伺服器。</p>
+
+                    <div class="step-item">
+                        <span class="step-number">1</span>
+                        <div class="step-content">
+                            <h3>安裝 Gunicorn</h3>
+                            <pre>pip install gunicorn</pre>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-number">2</span>
+                        <div class="step-content">
+                            <h3>執行（基本）</h3>
+                            <pre>gunicorn -w 4 -b 0.0.0.0:5000 "app:create_app()"</pre>
+                            <p><code>-w 4</code> 表示使用 4 個 worker 處理請求</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-number">3</span>
+                        <div class="step-content">
+                            <h3>執行（背景運行）</h3>
+                            <pre>gunicorn -w 4 -b 0.0.0.0:5000 "app:create_app()" --daemon</pre>
+                            <p><code>--daemon</code> 讓服務在背景運行</p>
+                        </div>
+                    </div>
+
+                    <div class="box info">
+                        <strong>停止背景服務：</strong>
+                        <pre style="margin: 8px 0;">pkill gunicorn</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方式五：Docker -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>方式五：Docker 容器部署</h2>
+
+                <div class="deploy-option">
+                    <h3>🐳 Docker 容器化 <span class="difficulty hard">進階</span></h3>
+                    <p>將應用程式打包成容器，跨平台、可移植。</p>
+
+                    <h3>建立 Dockerfile</h3>
+                    <pre>FROM python:3.11-slim
+
+WORKDIR /app
+
+# 安裝依賴
+RUN pip install notebooklm-py flask flask-cors
+RUN pip install "notebooklm-py[browser]"
+RUN playwright install chromium
+RUN playwright install-deps
+
+# 複製專案
+COPY . .
+
+# 啟動
+EXPOSE 5000
+CMD ["python", "app.py"]</pre>
+
+                    <div class="two-column" style="margin-top: 15px;">
+                        <div>
+                            <h3>建立映像</h3>
+                            <pre>docker build -t notebooklm-gui .</pre>
+                        </div>
+                        <div>
+                            <h3>執行容器</h3>
+                            <pre>docker run -p 5000:5000 \
+  -v ~/.notebooklm:/root/.notebooklm \
+  notebooklm-gui</pre>
+                        </div>
+                    </div>
+
+                    <div class="box warning">
+                        <strong>注意：</strong>需要掛載 <code>~/.notebooklm</code> 目錄來保存登入狀態。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方式六：開機自動啟動 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>方式六：開機自動啟動（Windows）</h2>
+
+                <div class="deploy-option">
+                    <h3>🔄 Windows 開機自啟 <span class="difficulty medium">中等</span></h3>
+                    <p>讓電腦開機後自動啟動 NotebookLM 自動化服務。</p>
+
+                    <div class="step-item">
+                        <span class="step-number">1</span>
+                        <div class="step-content">
+                            <h3>建立批次檔 <code>start.bat</code></h3>
+                            <pre>@echo off
+cd /d D:\notebooklm-automation
+python app.py
+pause</pre>
+                            <p>將 <code>D:\notebooklm-automation</code> 改成你的專案路徑</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-number">2</span>
+                        <div class="step-content">
+                            <h3>加入啟動資料夾</h3>
+                            <ol>
+                                <li>按 <code>Win + R</code>，輸入 <code>shell:startup</code></li>
+                                <li>會開啟「啟動」資料夾</li>
+                                <li>將 <code>start.bat</code> 的捷徑放入此資料夾</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-number">3</span>
+                        <div class="step-content">
+                            <h3>測試</h3>
+                            <p>重新開機，確認服務是否自動啟動。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 背景服務（nssm） -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>進階：建立 Windows 服務（nssm）</h2>
+                <p>如果希望服務在背景靜默運行（不顯示視窗），可以用 nssm 建立 Windows 服務。</p>
+
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>下載 nssm</h3>
+                        <p>從 <code>nssm.cc</code> 下載，解壓縮到 <code>C:\nssm</code></p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>安裝服務（管理員權限）</h3>
+                        <pre>C:\nssm\nssm.exe install NotebookLMService</pre>
+                        <p>在彈出的視窗中設定：</p>
+                        <ul>
+                            <li><strong>Path:</strong> Python 路徑（如 <code>C:\Python311\python.exe</code>）</li>
+                            <li><strong>Startup directory:</strong> 專案路徑</li>
+                            <li><strong>Arguments:</strong> <code>run_server.py</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h3>啟動服務</h3>
+                        <pre>C:\nssm\nssm.exe start NotebookLMService</pre>
+                    </div>
+                </div>
+
+                <div class="box info">
+                    <strong>管理服務：</strong><br>
+                    • 停止：<code>nssm stop NotebookLMService</code><br>
+                    • 重啟：<code>nssm restart NotebookLMService</code><br>
+                    • 移除：<code>nssm remove NotebookLMService</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- 常見問題 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>常見問題與解決方案</h2>
+
+                <div class="two-column">
+                    <div>
+                        <div class="box error">
+                            <strong>Q: 無法遠端存取？</strong><br>
+                            確認：<br>
+                            1. <code>host='0.0.0.0'</code> 設定正確<br>
+                            2. 防火牆已開放 5000 port<br>
+                            3. 伺服器和客戶端在同一網路
+                        </div>
+
+                        <div class="box error">
+                            <strong>Q: 登入狀態失效？</strong><br>
+                            解決：在伺服器電腦重新執行<br>
+                            <code>notebooklm login</code>
+                        </div>
+
+                        <div class="box error">
+                            <strong>Q: Docker 中登入失敗？</strong><br>
+                            解決：先在本機登入，再掛載<br>
+                            <code>~/.notebooklm</code> 目錄到容器
+                        </div>
+                    </div>
+                    <div>
+                        <div class="box error">
+                            <strong>Q: 服務佔用 port？</strong><br>
+                            Windows 查看：<br>
+                            <code>netstat -ano | findstr :5000</code><br>
+                            結束佔用：<code>taskkill /PID 進程ID /F</code>
+                        </div>
+
+                        <div class="box error">
+                            <strong>Q: Gunicorn 無法停止？</strong><br>
+                            強制停止：<br>
+                            <code>pkill -9 gunicorn</code>
+                        </div>
+
+                        <div class="box error">
+                            <strong>Q: 開機自啟無效？</strong><br>
+                            確認批次檔路徑正確，且 Python<br>
+                            已加入系統 PATH 環境變數
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 完成頁 -->
+        <div class="slide">
+            <div class="content-card cover-content">
+                <h1>Part 4D 完成！</h1>
+                <p class="cover-subtitle">你已經學會各種部署方式了</p>
+                <div class="concept-grid" style="margin-top: 25px;">
+                    <div class="concept-card">
+                        <h3>本機使用</h3>
+                        <p>開發測試</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>區域網路</h3>
+                        <p>多設備共用</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>正式部署</h3>
+                        <p>Waitress/Gunicorn</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>容器化</h3>
+                        <p>Docker</p>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 25px; text-align: left;">
+                    <strong>🎉 Part 4 全部完成！</strong><br>
+                    你已經學會：<br>
+                    • NotebookLM 基礎操作<br>
+                    • 安裝自動化工具<br>
+                    • 使用 Web GUI<br>
+                    • 部署與遠端存取
+                </div>
+                <p class="cover-info" style="margin-top: 20px;">
+                    <a href="Part5_Prompt設計與內容生成.html" style="color: #667eea; font-weight: bold; text-decoration: none;">
+                        下一章：Part 5 - Prompt 設計與內容生成 →
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&#10095;</button>
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        function init() { createIndicators(); showSlide(0); updateButtons(); document.addEventListener('keydown', handleKeydown); }
+        function handleKeydown(e) { if (e.key === 'ArrowLeft') changeSlide(-1); if (e.key === 'ArrowRight') changeSlide(1); }
+        function createIndicators() { const container = document.getElementById('indicatorContainer'); slides.forEach((_, i) => { const dot = document.createElement('div'); dot.className = 'dot'; dot.onclick = () => goToSlide(i); container.appendChild(dot); }); }
+        function showSlide(index) { if (index < 0) index = 0; if (index >= totalSlides) index = totalSlides - 1; slides.forEach(s => s.classList.remove('active')); slides[index].classList.add('active'); currentSlide = index; document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === index)); updateButtons(); document.getElementById('pageIndicator').textContent = `${index + 1} / ${totalSlides}`; }
+        function changeSlide(d) { showSlide(currentSlide + d); }
+        function goToSlide(i) { showSlide(i); }
+        function updateButtons() { document.getElementById('prevBtn').disabled = currentSlide === 0; document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1; }
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        init();
+    </script>
+</body>
+</html>
