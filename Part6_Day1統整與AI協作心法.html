@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 6 - Day 1 統整與 AI 協作心法</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 18px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 10px; }
+        .nav-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .prev-arrow { left: 20px; } .next-arrow { right: 20px; }
+        .nav-arrow:disabled { opacity: 0.3; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 30px 80px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); padding: 35px 45px; max-width: 1400px; width: 100%; max-height: 85vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 15px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h3 { color: #667eea; font-size: 18px; margin: 15px 0 10px 0; }
+        p, li { font-size: 15px; line-height: 1.7; color: #444; margin-bottom: 8px; }
+        ul, ol { margin-left: 25px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        .box { padding: 15px 20px; border-radius: 10px; margin: 15px 0; border-left: 4px solid; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; text-align: center; }
+        .concept-card h3 { margin-top: 0; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; margin: 2px; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 6px 12px; background: rgba(0,0,0,0.3); border-radius: 20px; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.3); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 42px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cover-subtitle { font-size: 20px; color: #764ba2; margin-bottom: 15px; }
+        .cover-info { font-size: 14px; color: #888; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .flow-diagram { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+        .flow-step { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 120px; }
+        .flow-step .icon { font-size: 24px; margin-bottom: 5px; }
+        .flow-step .text { font-size: 14px; font-weight: 600; }
+        .flow-arrow { color: #667eea; font-size: 24px; }
+        .checklist { background: #f8f9ff; padding: 20px; border-radius: 12px; margin: 15px 0; }
+        .checklist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e8ecff; }
+        .checklist-item:last-child { border-bottom: none; }
+        .checklist-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #667eea; }
+        .prompt-template { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 12px; margin: 15px 0; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.6; }
+        .prompt-template .label { color: #569cd6; }
+        .prompt-template .value { color: #ce9178; }
+        .prompt-template .comment { color: #6a9955; }
+        .summary-card { background: linear-gradient(135deg, #f0f4ff 0%, #fff 100%); border: 2px solid #667eea; border-radius: 15px; padding: 20px; margin: 10px 0; }
+        .summary-card h3 { color: #667eea; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .part-flow { display: flex; flex-direction: column; gap: 15px; }
+        .part-flow-item { display: flex; align-items: center; gap: 15px; }
+        .part-number { width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+        .part-content { flex: 1; background: #f8f9ff; padding: 12px 15px; border-radius: 10px; border-left: 3px solid #667eea; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 6 - Day 1 統整與 AI 協作心法</div>
+        <div class="nav-buttons">
+            <a href="Day1.html" class="nav-btn">← Day 1</a>
+            <a href="Part5_Prompt設計與內容生成.html" class="nav-btn">← 上一章</a>
+            <a href="Part7_進階技巧與Skill建立.html" class="nav-btn">下一章 Part 7 →</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 12</span>
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <!-- 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 6：Day 1 統整與 AI 協作心法</h1>
+                <p class="cover-subtitle">掌握 AI 協作的核心方法論</p>
+                <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">學習統整</span>
+                    <span class="tag-badge">AI 協作心法</span>
+                    <span class="tag-badge">工作流程</span>
+                    <span class="tag-badge">驗證檢查</span>
+                </div>
+                <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+        <!-- AI 協作核心心法 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>AI 協作核心心法</h2>
+                <p>用 AI 做簡報不是「讓 AI 幫你做」，而是「你和 AI 一起做」。</p>
+
+                <div class="flow-diagram">
+                    <div class="flow-step">
+                        <div class="icon">📝</div>
+                        <div class="text">描述需求</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="icon">🤖</div>
+                        <div class="text">AI 生成</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="icon">👀</div>
+                        <div class="text">測試效果</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="icon">🔧</div>
+                        <div class="text">微調修正</div>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>關鍵原則：</strong>這個循環會重複很多次！每次只做「一小步」，累積成完整作品。
+                </div>
+
+                <div class="two-column" style="margin-top: 20px;">
+                    <div>
+                        <h3>❌ 錯誤做法</h3>
+                        <ul>
+                            <li>一次問太多功能</li>
+                            <li>不測試就繼續往下做</li>
+                            <li>出錯時不知道是哪步錯</li>
+                            <li>期待 AI 一次做完</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>✅ 正確做法</h3>
+                        <ul>
+                            <li>每次只問「一個功能」</li>
+                            <li>每步都「立即測試」</li>
+                            <li>小步驟，好除錯</li>
+                            <li>循序漸進，逐步累積</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day 1 學習回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Day 1 學習回顧</h2>
+                <p>今天你學會了完整的 AI 協作簡報製作流程！</p>
+
+                <div class="part-flow">
+                    <div class="part-flow-item">
+                        <div class="part-number">1</div>
+                        <div class="part-content">
+                            <strong>HTML 基礎入門</strong> - 認識標籤、VS Code 操作
+                        </div>
+                    </div>
+                    <div class="part-flow-item">
+                        <div class="part-number">2</div>
+                        <div class="part-content">
+                            <strong>Reveal.js 簡報框架</strong> - 快捷鍵、總覽模式、講者備註
+                        </div>
+                    </div>
+                    <div class="part-flow-item">
+                        <div class="part-number">3</div>
+                        <div class="part-content">
+                            <strong>手繪設計與 AI 生成</strong> - Wireframe、Prompt 三要素、模板化
+                        </div>
+                    </div>
+                    <div class="part-flow-item">
+                        <div class="part-number">4</div>
+                        <div class="part-content">
+                            <strong>資料收集與 NotebookLM</strong> - AI 整理素材、自動化工具
+                        </div>
+                    </div>
+                    <div class="part-flow-item">
+                        <div class="part-number">5</div>
+                        <div class="part-content">
+                            <strong>Prompt 設計與內容生成</strong> - 5 個 Prompt 組、批次生成
+                        </div>
+                    </div>
+                </div>
+
+                <div class="box info" style="margin-top: 15px;">
+                    <strong>核心技能：</strong>你已經掌握「手繪 → AI 生成 → 內容填充」的完整工作流程！
+                </div>
+            </div>
+        </div>
+
+        <!-- Prompt 問法範本 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Prompt 問法範本</h2>
+                <p>好的 Prompt 有固定結構，用「範本」可以讓 AI 更精準理解你的需求。</p>
+
+                <div class="prompt-template">
+                    <span class="comment">// 簡報投影片生成範本</span><br><br>
+                    <span class="label">【角色】</span><span class="value">你是一個專業的簡報設計師</span><br><br>
+                    <span class="label">【任務】</span><span class="value">幫我生成一頁關於「{主題}」的投影片</span><br><br>
+                    <span class="label">【格式要求】</span><br>
+                    - 使用 Reveal.js 框架<br>
+                    - 標題在上方<br>
+                    - 內容分成 3 個重點<br>
+                    - 每個重點配一個 emoji<br><br>
+                    <span class="label">【風格】</span><span class="value">專業、簡潔、視覺化</span>
+                </div>
+
+                <div class="box success">
+                    <strong>範本優點：</strong><br>
+                    1. 複製貼上，只改 <code>{主題}</code> 就能用<br>
+                    2. 每次產出風格一致<br>
+                    3. 可以存成 Skill 反覆使用
+                </div>
+            </div>
+        </div>
+
+        <!-- 單功能提問原則 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>單功能提問原則</h2>
+                <p>一次只問一件事，是 AI 協作最重要的技巧！</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>❌ 不好的問法</h3>
+                        <div class="prompt-template" style="font-size: 13px;">
+                            幫我做一個簡報，<br>
+                            要有 10 頁，<br>
+                            每頁都有動畫，<br>
+                            背景要漸層色，<br>
+                            還要有講者備註，<br>
+                            最後存成 PDF。
+                        </div>
+                        <div class="box warning">
+                            <strong>問題：</strong>太多需求混在一起，AI 容易漏掉或搞混。
+                        </div>
+                    </div>
+                    <div>
+                        <h3>✅ 好的問法</h3>
+                        <div class="prompt-template" style="font-size: 13px;">
+                            <span class="comment">// 第一步</span><br>
+                            幫我建立 Reveal.js 簡報的基本架構<br><br>
+                            <span class="comment">// 第二步</span><br>
+                            加上漸層背景，從藍色到紫色<br><br>
+                            <span class="comment">// 第三步</span><br>
+                            為第一頁加上淡入動畫
+                        </div>
+                        <div class="box success">
+                            <strong>優點：</strong>每步都能確認效果，出錯容易找到原因。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 即時驗證的重要性 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>即時驗證的重要性</h2>
+                <p>AI 生成的程式碼不一定正確，每一步都要立即測試！</p>
+
+                <div class="flow-diagram">
+                    <div class="flow-step" style="background: #28a745;">
+                        <div class="icon">💻</div>
+                        <div class="text">AI 生成</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step" style="background: #ffc107; color: #333;">
+                        <div class="icon">📋</div>
+                        <div class="text">複製到 VS Code</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step" style="background: #17a2b8;">
+                        <div class="icon">🌐</div>
+                        <div class="text">瀏覽器預覽</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step" style="background: #667eea;">
+                        <div class="icon">✓</div>
+                        <div class="text">確認效果</div>
+                    </div>
+                </div>
+
+                <h3>驗證要點</h3>
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <input type="checkbox"> 網頁能正常開啟嗎？
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox"> 有出現錯誤訊息嗎？（按 F12 開啟開發者工具）
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox"> 畫面顯示的是我要的效果嗎？
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox"> 互動功能（點擊、切換）正常嗎？
+                    </div>
+                </div>
+
+                <div class="box warning">
+                    <strong>重要：</strong>驗證通過才能進行下一步！不要「假裝沒問題」繼續做。
+                </div>
+            </div>
+        </div>
+
+        <!-- 效果確認清單 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>簡報製作效果確認清單</h2>
+                <p>完成簡報後，用這份清單確認品質！</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>📋 基礎檢查</h3>
+                        <div class="checklist">
+                            <div class="checklist-item">
+                                <input type="checkbox"> HTML 檔案能正常開啟
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> 左右鍵可以切換投影片
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> ESC 可以開啟總覽模式
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> S 鍵可以開啟講者備註
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> 所有圖片都有正常顯示
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>🎨 視覺檢查</h3>
+                        <div class="checklist">
+                            <div class="checklist-item">
+                                <input type="checkbox"> 字體大小適中，遠處看得清楚
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> 配色一致，沒有突兀的顏色
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> 排版整齊，沒有重疊或超出
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> 每頁內容不會太多（5-7 點為佳）
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox"> 動畫效果自然，不會太花俏
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡關急救包 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>卡關急救包</h2>
+                <p>遇到問題時，先用這些方法排查！</p>
+
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="summary-card">
+                        <h3>🔴 網頁空白或亂碼</h3>
+                        <ul>
+                            <li>檢查 HTML 標籤有沒有漏掉結尾</li>
+                            <li>確認 <code>&lt;html&gt;</code> <code>&lt;head&gt;</code> <code>&lt;body&gt;</code> 都有</li>
+                            <li>用 UTF-8 編碼儲存檔案</li>
+                        </ul>
+                    </div>
+                    <div class="summary-card">
+                        <h3>🔴 投影片不能切換</h3>
+                        <ul>
+                            <li>確認 Reveal.js CDN 連結正確</li>
+                            <li>確認 <code>Reveal.initialize()</code> 有執行</li>
+                            <li>檢查 <code>&lt;section&gt;</code> 標籤是否完整</li>
+                        </ul>
+                    </div>
+                    <div class="summary-card">
+                        <h3>🔴 樣式沒有效果</h3>
+                        <ul>
+                            <li>確認 CSS 放在 <code>&lt;style&gt;</code> 標籤內</li>
+                            <li>檢查選擇器名稱有沒有打錯</li>
+                            <li>確認沒有被其他樣式覆蓋</li>
+                        </ul>
+                    </div>
+                    <div class="summary-card">
+                        <h3>🔴 圖片顯示不出來</h3>
+                        <ul>
+                            <li>檢查圖片路徑是否正確</li>
+                            <li>確認圖片檔案存在</li>
+                            <li>注意大小寫（Linux 區分大小寫）</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box info" style="margin-top: 15px;">
+                    <strong>萬用解法：</strong>按 F12 開啟「開發者工具」→ Console，看看有沒有紅色錯誤訊息！
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 協作的三個層次 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>AI 協作的三個層次</h2>
+                <p>隨著經驗累積，你會逐步提升 AI 協作能力。</p>
+
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="summary-card" style="border-color: #28a745;">
+                        <h3 style="color: #28a745;">🌱 初學者</h3>
+                        <p><strong>特徵：</strong></p>
+                        <ul>
+                            <li>複製貼上 AI 的程式碼</li>
+                            <li>不太知道為什麼有效</li>
+                            <li>出錯時不知道怎麼改</li>
+                        </ul>
+                        <p><strong>目標：</strong>先讓東西能動</p>
+                    </div>
+                    <div class="summary-card" style="border-color: #ffc107;">
+                        <h3 style="color: #856404;">🌿 進階者</h3>
+                        <p><strong>特徵：</strong></p>
+                        <ul>
+                            <li>會修改 AI 的程式碼</li>
+                            <li>理解基本原理</li>
+                            <li>能自己排除簡單問題</li>
+                        </ul>
+                        <p><strong>目標：</strong>能微調和客製化</p>
+                    </div>
+                    <div class="summary-card" style="border-color: #667eea;">
+                        <h3 style="color: #667eea;">🌳 專家</h3>
+                        <p><strong>特徵：</strong></p>
+                        <ul>
+                            <li>設計 Prompt 範本和 Skill</li>
+                            <li>建立可重複使用的工作流</li>
+                            <li>教別人使用 AI 協作</li>
+                        </ul>
+                        <p><strong>目標：</strong>提升效率、傳承經驗</p>
+                    </div>
+                </div>
+
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>今天你已經是初學者了！</strong>繼續練習，很快就會進階！
+                </div>
+            </div>
+        </div>
+
+        <!-- 建立你的 Prompt 資料庫 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>建立你的 Prompt 資料庫</h2>
+                <p>把有效的 Prompt 收集起來，建立自己的「問法寶典」！</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>推薦收集的 Prompt</h3>
+                        <ul>
+                            <li>建立 Reveal.js 基本架構</li>
+                            <li>設計漸層背景樣式</li>
+                            <li>製作表格投影片</li>
+                            <li>加入動畫效果</li>
+                            <li>整理 NotebookLM 資料</li>
+                            <li>生成簡報大綱</li>
+                            <li>修正 HTML 錯誤</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>儲存方式建議</h3>
+                        <div class="box info">
+                            <strong>方式 1：Markdown 檔案</strong><br>
+                            建立 <code>我的Prompt.md</code>，分類整理
+                        </div>
+                        <div class="box info">
+                            <strong>方式 2：Notion / HackMD</strong><br>
+                            用筆記軟體管理，方便搜尋
+                        </div>
+                        <div class="box success">
+                            <strong>方式 3：建立 Skill</strong><br>
+                            學習 Part 7，把 Prompt 變成可執行的 Skill！
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day 1 成果展示 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Day 1 成果展示</h2>
+                <p>經過今天的學習，你應該已經完成：</p>
+
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📄</div>
+                        <h3>HTML 簡報模板</h3>
+                        <p>可重複使用的<br>Reveal.js 基礎架構</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 40px; margin-bottom: 10px;">🎨</div>
+                        <h3>視覺設計稿</h3>
+                        <p>手繪或工具繪製的<br>Wireframe 設計</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📊</div>
+                        <h3>NotebookLM 專案</h3>
+                        <p>整理好的<br>簡報素材資料庫</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📝</div>
+                        <h3>內容大綱</h3>
+                        <p>簡報的章節架構<br>和重點整理</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 40px; margin-bottom: 10px;">💬</div>
+                        <h3>Prompt 組</h3>
+                        <p>5 個可重複使用的<br>AI 提問範本</p>
+                    </div>
+                    <div class="concept-card">
+                        <div style="font-size: 40px; margin-bottom: 10px;">🎬</div>
+                        <h3>簡報初版</h3>
+                        <p>至少 5 頁的<br>HTML 簡報</p>
+                    </div>
+                </div>
+
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>明天 Day 2：</strong>我們會完善簡報細節、優化視覺設計，最後部署到 GitHub Pages 讓全世界看到！
+                </div>
+            </div>
+        </div>
+
+        <!-- 完成頁 -->
+        <div class="slide">
+            <div class="content-card cover-content">
+                <h1>Day 1 完成！🎉</h1>
+                <p class="cover-subtitle">你已經掌握 AI 協作簡報的核心技能</p>
+
+                <div class="box success" style="text-align: left; margin-top: 25px;">
+                    <strong>今日心法回顧：</strong><br><br>
+                    1️⃣ <strong>描述 → 生成 → 測試 → 微調</strong> 的循環<br>
+                    2️⃣ <strong>單功能提問</strong>，一次只做一件事<br>
+                    3️⃣ <strong>即時驗證</strong>，每步都測試<br>
+                    4️⃣ <strong>建立範本</strong>，累積你的 Prompt 資料庫
+                </div>
+
+                <p class="cover-info" style="margin-top: 25px;">
+                    <a href="Part7_進階技巧與Skill建立.html" style="color: #667eea; font-weight: bold; text-decoration: none;">
+                        進階學習：Part 7 - Skill 建立 →
+                    </a>
+                    <br><br>
+                    <a href="Day2.html" style="color: #764ba2; font-weight: bold; text-decoration: none;">
+                        明天見：Day 2 - 完善與上線 →
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&#10095;</button>
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        function init() { createIndicators(); showSlide(0); updateButtons(); document.addEventListener('keydown', handleKeydown); }
+        function handleKeydown(e) { if (e.key === 'ArrowLeft') changeSlide(-1); if (e.key === 'ArrowRight') changeSlide(1); }
+        function createIndicators() { const container = document.getElementById('indicatorContainer'); slides.forEach((_, i) => { const dot = document.createElement('div'); dot.className = 'dot'; dot.onclick = () => goToSlide(i); container.appendChild(dot); }); }
+        function showSlide(index) { if (index < 0) index = 0; if (index >= totalSlides) index = totalSlides - 1; slides.forEach(s => s.classList.remove('active')); slides[index].classList.add('active'); currentSlide = index; document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === index)); updateButtons(); document.getElementById('pageIndicator').textContent = `${index + 1} / ${totalSlides}`; }
+        function changeSlide(d) { showSlide(currentSlide + d); }
+        function goToSlide(i) { showSlide(i); }
+        function updateButtons() { document.getElementById('prevBtn').disabled = currentSlide === 0; document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1; }
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        init();
+    </script>
+</body>
+</html>
