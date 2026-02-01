@@ -185,27 +185,59 @@
             </div>
         </div>
 
-        <!-- 步驟一：安裝 notebooklm-py -->
+        <!-- 步驟一：下載專案 -->
         <div class="slide">
             <div class="content-card">
-                <h2>步驟一：安裝 notebooklm-py</h2>
-                <p><code>notebooklm-py</code> 是一個 Python 套件，讓你用命令列操作 NotebookLM。</p>
+                <h2>步驟一：下載 Web GUI 專案</h2>
+                <p>首先從 GitHub 下載自動化專案。</p>
 
                 <div class="step-item">
                     <span class="step-number">1</span>
                     <div class="step-content">
-                        <h3>安裝主程式</h3>
-                        <pre>pip install notebooklm-py</pre>
-                        <p>這會安裝 <code>notebooklm</code> 命令列工具。</p>
+                        <h3>用 Git 下載（推薦）</h3>
+                        <pre>git clone https://github.com/ChatGPT3a01/notebooklm-automation.git
+cd notebooklm-automation</pre>
                     </div>
                 </div>
 
                 <div class="step-item">
                     <span class="step-number">2</span>
                     <div class="step-content">
-                        <h3>安裝瀏覽器擴充</h3>
-                        <pre>pip install "notebooklm-py[browser]"</pre>
-                        <p>這會安裝 Playwright 瀏覽器自動化相關套件。</p>
+                        <h3>或直接下載 ZIP</h3>
+                        <p>前往 <code>https://github.com/ChatGPT3a01/notebooklm-automation</code></p>
+                        <p>點擊「Code」→「Download ZIP」，然後解壓縮。</p>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>專案網址：</strong><br>
+                    <a href="https://github.com/ChatGPT3a01/notebooklm-automation" target="_blank" style="color: #155724;">
+                        https://github.com/ChatGPT3a01/notebooklm-automation
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步驟二：安裝依賴套件 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>步驟二：安裝依賴套件</h2>
+                <p>進入專案目錄，安裝所需的 Python 套件。</p>
+
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>進入專案目錄</h3>
+                        <pre>cd notebooklm-automation</pre>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>安裝所有依賴</h3>
+                        <pre>pip install -r requirements.txt</pre>
+                        <p>這會安裝 Flask、notebooklm-py 等所有必要套件。</p>
                     </div>
                 </div>
 
@@ -224,10 +256,10 @@
             </div>
         </div>
 
-        <!-- 步驟二：Google 帳號登入 -->
+        <!-- 步驟三：Google 帳號登入 -->
         <div class="slide">
             <div class="content-card">
-                <h2>步驟二：Google 帳號登入</h2>
+                <h2>步驟三：Google 帳號登入</h2>
                 <p>notebooklm-py 需要你的 Google 帳號授權才能操作 NotebookLM。</p>
 
                 <div class="step-item">
@@ -326,75 +358,10 @@
             </div>
         </div>
 
-        <!-- 步驟三：下載 Web GUI 專案 -->
+        <!-- 步驟四：啟動應用程式 -->
         <div class="slide">
             <div class="content-card">
-                <h2>步驟三：下載 Web GUI 專案</h2>
-                <p>Web GUI 讓你用網頁介面操作 NotebookLM，更直覺方便！</p>
-
-                <div class="step-item">
-                    <span class="step-number">1</span>
-                    <div class="step-content">
-                        <h3>用 Git 下載（推薦）</h3>
-                        <pre>git clone https://github.com/ChatGPT3a01/notebooklm-automation.git
-cd notebooklm-automation</pre>
-                    </div>
-                </div>
-
-                <div class="step-item">
-                    <span class="step-number">2</span>
-                    <div class="step-content">
-                        <h3>或直接下載 ZIP</h3>
-                        <p>前往 <code>https://github.com/ChatGPT3a01/notebooklm-automation</code></p>
-                        <p>點擊「Code」→「Download ZIP」，然後解壓縮。</p>
-                    </div>
-                </div>
-
-                <div class="box success">
-                    <strong>專案網址：</strong><br>
-                    <code>https://github.com/ChatGPT3a01/notebooklm-automation</code>
-                </div>
-            </div>
-        </div>
-
-        <!-- 步驟四：安裝專案依賴 -->
-        <div class="slide">
-            <div class="content-card">
-                <h2>步驟四：安裝專案依賴</h2>
-                <p>Web GUI 需要一些額外的 Python 套件。</p>
-
-                <div class="step-item">
-                    <span class="step-number">1</span>
-                    <div class="step-content">
-                        <h3>進入專案目錄</h3>
-                        <pre>cd notebooklm-automation</pre>
-                    </div>
-                </div>
-
-                <div class="step-item">
-                    <span class="step-number">2</span>
-                    <div class="step-content">
-                        <h3>安裝依賴套件</h3>
-                        <pre>pip install -r requirements.txt</pre>
-                    </div>
-                </div>
-
-                <h3>requirements.txt 包含：</h3>
-                <table>
-                    <tr><th>套件</th><th>功能</th></tr>
-                    <tr><td><code>flask>=3.0.0</code></td><td>Python Web 框架</td></tr>
-                    <tr><td><code>flask-cors>=4.0.0</code></td><td>跨域請求支援</td></tr>
-                    <tr><td><code>notebooklm-py>=0.3.0</code></td><td>NotebookLM CLI</td></tr>
-                    <tr><td><code>google-generativeai>=0.8.0</code></td><td>Gemini API（可選）</td></tr>
-                    <tr><td><code>openai>=1.0.0</code></td><td>OpenAI API（可選）</td></tr>
-                </table>
-            </div>
-        </div>
-
-        <!-- 步驟五：啟動應用程式 -->
-        <div class="slide">
-            <div class="content-card">
-                <h2>步驟五：啟動應用程式</h2>
+                <h2>步驟四：啟動應用程式</h2>
 
                 <div class="step-item">
                     <span class="step-number">1</span>
