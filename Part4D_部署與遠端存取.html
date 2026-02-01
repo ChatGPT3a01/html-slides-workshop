@@ -78,7 +78,6 @@
                 <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
                     <span class="tag-badge">區域網路</span>
                     <span class="tag-badge">Waitress</span>
-                    <span class="tag-badge">Docker</span>
                     <span class="tag-badge">開機自啟</span>
                 </div>
                 <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊</p>
@@ -121,12 +120,6 @@
                         <td>Linux/macOS 正式部署</td>
                         <td><span class="difficulty medium">中等</span></td>
                         <td>高效能 WSGI 伺服器</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Docker 容器</strong></td>
-                        <td>跨平台、可移植</td>
-                        <td><span class="difficulty hard">進階</span></td>
-                        <td>容器化部署</td>
                     </tr>
                     <tr>
                         <td><strong>開機自動啟動</strong></td>
@@ -334,57 +327,10 @@ if __name__ == '__main__':
             </div>
         </div>
 
-        <!-- 方式五：Docker -->
+        <!-- 方式五：開機自動啟動 -->
         <div class="slide">
             <div class="content-card">
-                <h2>方式五：Docker 容器部署</h2>
-
-                <div class="deploy-option">
-                    <h3>🐳 Docker 容器化 <span class="difficulty hard">進階</span></h3>
-                    <p>將應用程式打包成容器，跨平台、可移植。</p>
-
-                    <h3>建立 Dockerfile</h3>
-                    <pre>FROM python:3.11-slim
-
-WORKDIR /app
-
-# 安裝依賴
-RUN pip install notebooklm-py flask flask-cors
-RUN pip install "notebooklm-py[browser]"
-RUN playwright install chromium
-RUN playwright install-deps
-
-# 複製專案
-COPY . .
-
-# 啟動
-EXPOSE 5000
-CMD ["python", "app.py"]</pre>
-
-                    <div class="two-column" style="margin-top: 15px;">
-                        <div>
-                            <h3>建立映像</h3>
-                            <pre>docker build -t notebooklm-gui .</pre>
-                        </div>
-                        <div>
-                            <h3>執行容器</h3>
-                            <pre>docker run -p 5000:5000 \
-  -v ~/.notebooklm:/root/.notebooklm \
-  notebooklm-gui</pre>
-                        </div>
-                    </div>
-
-                    <div class="box warning">
-                        <strong>注意：</strong>需要掛載 <code>~/.notebooklm</code> 目錄來保存登入狀態。
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 方式六：開機自動啟動 -->
-        <div class="slide">
-            <div class="content-card">
-                <h2>方式六：開機自動啟動（Windows）</h2>
+                <h2>方式五：開機自動啟動（Windows）</h2>
 
                 <div class="deploy-option">
                     <h3>🔄 Windows 開機自啟 <span class="difficulty medium">中等</span></h3>
@@ -491,11 +437,6 @@ pause</pre>
                             <code>notebooklm login</code>
                         </div>
 
-                        <div class="box error">
-                            <strong>Q: Docker 中登入失敗？</strong><br>
-                            解決：先在本機登入，再掛載<br>
-                            <code>~/.notebooklm</code> 目錄到容器
-                        </div>
                     </div>
                     <div>
                         <div class="box error">
@@ -540,8 +481,8 @@ pause</pre>
                         <p>Waitress/Gunicorn</p>
                     </div>
                     <div class="concept-card">
-                        <h3>容器化</h3>
-                        <p>Docker</p>
+                        <h3>開機自啟</h3>
+                        <p>自動化服務</p>
                     </div>
                 </div>
                 <div class="box success" style="margin-top: 25px; text-align: left;">
