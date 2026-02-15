@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 12 - AI 客服系統部署</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.15); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 20px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 12px; align-items: center; }
+        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .nav-arrow:hover { background: rgba(255,255,255,0.5); transform: translateY(-50%) scale(1.1); }
+        .prev-arrow { left: 30px; } .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 40px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255,255,255,0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 30px 40px; max-width: 1400px; width: 95%; max-height: 88vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 16px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 16px; border-bottom: 3px solid #667eea; padding-bottom: 8px; }
+        h3 { color: #667eea; font-size: 19px; margin: 14px 0 8px 0; }
+        p, li { font-size: 15px; line-height: 1.65; color: #444; margin-bottom: 6px; }
+        ul, ol { margin-left: 22px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #282c34; color: #abb2bf; padding: 12px; border-radius: 10px; margin: 10px 0; font-size: 12px; font-family: 'Consolas', monospace; overflow-x: auto; line-height: 1.5; }
+        .box { padding: 10px 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid; font-size: 14px; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .concept-card:hover { transform: translateY(-3px); border-color: #667eea; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin: 2px; }
+        .time-badge { display: inline-block; background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; font-weight: 700; font-size: 13px; margin-right: 8px; }
+        .screenshot { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin: 12px 0; border: 2px solid #e0e0e0; }
+        .screenshot-container { text-align: center; margin: 12px 0; }
+        .screenshot-caption { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 8px 15px; background: rgba(0,0,0,0.3); border-radius: 25px; backdrop-filter: blur(5px); flex-wrap: wrap; max-width: 90%; justify-content: center; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.4); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .cover-subtitle { font-size: 22px; color: #764ba2; margin-bottom: 20px; }
+        .cover-info { font-size: 15px; color: #888; margin-top: 25px; }
+        .section-divider { text-align: center; padding: 25px; }
+        .section-divider h1 { font-size: 42px; }
+        .section-divider p { font-size: 18px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .flow-chart { background: #f8f9ff; padding: 15px; border-radius: 10px; text-align: center; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 12 - AI 客服系統部署</div>
+        <div class="nav-buttons">
+            <a href="Day2.html" class="nav-btn">首頁</a>
+            <a href="Part11_GitHub_Pages部署.html" class="nav-btn">&larr; 上一章</a>
+            <a href="Part13_上線測試與課程總結.html" class="nav-btn">下一章 &rarr;</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 24</span>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&larr;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&rarr;</button>
+
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 12：AI 客服系統部署</h1>
+                <p class="cover-subtitle">認識企業級 AI 應用，動手部署到 Netlify 雲端</p>
+                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">Netlify</span>
+                    <span class="tag-badge">Supabase</span>
+                    <span class="tag-badge">環境變數</span>
+                    <span class="tag-badge">AI 客服</span>
+                    <span class="tag-badge">後端</span>
+                </div>
+                <p class="cover-info">小成品 21-22 | Day 2 下午<br>曾慶良（阿亮老師）| AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: 目錄 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>本章學習地圖</h2>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>小成品 21</h3>
+                        <p style="font-size: 20px; font-weight: 700; color: #764ba2;">認識 AI 客服系統</p>
+                        <p>了解前後端架構、系統資料流向、Netlify 與 GitHub Pages 的差異</p>
+                        <span class="time-badge">14:30 - 15:00</span>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>小成品 22</h3>
+                        <p style="font-size: 20px; font-weight: 700; color: #764ba2;">部署到 Netlify</p>
+                        <p>Fork 專案、建立 Supabase 資料庫、設定環境變數、上線測試</p>
+                        <span class="time-badge">15:00 - 15:30</span>
+                    </div>
+                </div>
+                <div class="box info" style="margin-top: 18px;">
+                    <strong>學習目標：</strong>認識企業級 AI 應用的架構，並親手將 AI 客服系統部署到 Netlify 雲端平台。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 小成品 21 標題 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <span class="time-badge">14:30 - 15:00</span>
+                <h1>小成品 21：認識 AI 客服系統</h1>
+                <p>了解為什麼需要後端，以及 AI 客服系統的完整架構</p>
+                <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">前端 vs 後端</span>
+                    <span class="tag-badge">Netlify Functions</span>
+                    <span class="tag-badge">系統架構</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: GitHub Pages 的限制 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>GitHub Pages 的限制</h2>
+                <p>到目前為止，我們用 GitHub Pages 部署了靜態網頁。但如果要做更進階的功能呢？</p>
+                <div class="two-column" style="margin-top: 15px;">
+                    <div class="concept-card">
+                        <h3>GitHub Pages 能做的</h3>
+                        <ul>
+                            <li>展示 HTML / CSS / JavaScript 網頁</li>
+                            <li>個人作品集、簡報、部落格</li>
+                            <li>純前端互動效果</li>
+                        </ul>
+                        <p style="text-align: center; font-size: 18px; margin-top: 10px;">好比 <strong>自助餐廳</strong></p>
+                        <p style="text-align: center; font-size: 13px; color: #666;">食物（網頁內容）已經擺好，客人自己拿</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>GitHub Pages 做不到的</h3>
+                        <ul>
+                            <li>連接資料庫儲存使用者資料</li>
+                            <li>呼叫需要保密的 API（如 AI）</li>
+                            <li>執行伺服器端程式</li>
+                        </ul>
+                        <p style="text-align: center; font-size: 18px; margin-top: 10px;">需要的是 <strong>有廚房的餐廳</strong></p>
+                        <p style="text-align: center; font-size: 13px; color: #666;">廚師（伺服器）在幕後處理客人的點餐</p>
+                    </div>
+                </div>
+                <div class="box info" style="margin-top: 15px;">
+                    <strong>解決方案：</strong>需要後端功能時，我們改用 <strong>Netlify</strong> 來部署！Netlify 除了靜態網頁，還支援 Serverless Functions（無伺服器函式）。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 前端 vs 後端 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>前端 vs 後端：餐廳比喻</h2>
+                <div class="two-column">
+                    <div class="concept-card" style="border-color: #667eea;">
+                        <h3 style="text-align: center;">前端 = 用餐區</h3>
+                        <p style="text-align: center; font-size: 13px; color: #666;">使用者看得到、摸得到的部分</p>
+                        <ul style="margin-top: 12px;">
+                            <li><strong>HTML</strong>：餐桌、椅子（結構）</li>
+                            <li><strong>CSS</strong>：裝潢、燈光（外觀）</li>
+                            <li><strong>JavaScript</strong>：服務鈴、菜單翻頁（互動）</li>
+                        </ul>
+                        <div class="box info" style="margin-top: 10px;">
+                            客人（使用者）在用餐區點餐、看菜單、享用食物
+                        </div>
+                    </div>
+                    <div class="concept-card" style="border-color: #764ba2;">
+                        <h3 style="text-align: center;">後端 = 廚房</h3>
+                        <p style="text-align: center; font-size: 13px; color: #666;">使用者看不到，但不可或缺的部分</p>
+                        <ul style="margin-top: 12px;">
+                            <li><strong>伺服器</strong>：廚師（處理請求）</li>
+                            <li><strong>資料庫</strong>：冰箱、食材庫（儲存資料）</li>
+                            <li><strong>API</strong>：出餐口（前後端溝通）</li>
+                        </ul>
+                        <div class="box warning" style="margin-top: 10px;">
+                            廚房（後端）負責保管祕方（API Key），不會讓客人直接進入
+                        </div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 15px; font-size: 14px; color: #666;">
+                    我們之前做的簡報都是「純前端」，現在要認識「有後端」的系統！
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 6: AI 客服系統功能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>AI 客服系統的 4 大功能</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="concept-card">
+                        <h3>AI 自動回覆</h3>
+                        <p>串接 Gemini / ChatGPT API，根據知識庫自動回答客戶問題。24 小時不間斷服務。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>真人客服轉接</h3>
+                        <p>AI 無法回答時，自動轉接真人客服。確保客戶問題一定能被解決。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>管理後台</h3>
+                        <p>網頁管理介面，可以設定 AI 行為、查看對話紀錄、管理知識庫內容。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>知識庫上傳</h3>
+                        <p>上傳 FAQ、產品資訊等文件，AI 會根據這些資料來回答客戶問題。</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img90.jpg" class="screenshot" alt="AI 客服系統管理後台介面">
+                    <p class="screenshot-caption">AI 客服系統管理後台介面預覽</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 系統資料流向 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>系統資料流向：一則訊息的旅程</h2>
+                <div class="flow-chart">
+                    <p style="font-size: 16px; font-weight: 700; margin-bottom: 10px;">客戶傳送一則 LINE 訊息後，會經過以下流程：</p>
+                    <p style="font-size: 20px; letter-spacing: 2px;">
+                        LINE 用戶 &rarr; LINE 平台 &rarr; Webhook &rarr; Netlify Functions &rarr; AI API &rarr; 回覆
+                    </p>
+                </div>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 10px;">
+                    <div class="concept-card">
+                        <h3>LINE 用戶 &rarr; LINE 平台</h3>
+                        <p>客人走進餐廳，跟服務生說「我要點餐」</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Webhook &rarr; Netlify Functions</h3>
+                        <p>服務生把點餐單送進廚房，廚師開始準備</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>AI API &rarr; 回覆</h3>
+                        <p>廚師做好菜，由服務生送到客人桌上</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img91.png" class="screenshot" alt="AI 客服系統資料流向圖">
+                    <p class="screenshot-caption">系統資料流向示意圖</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: GitHub Pages vs Netlify 比較 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>GitHub Pages vs Netlify 比較</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>比較項目</th>
+                            <th>GitHub Pages</th>
+                            <th>Netlify</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>費用</strong></td>
+                            <td>免費</td>
+                            <td>免費方案可用（有額度限制）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>後端功能</strong></td>
+                            <td>不支援</td>
+                            <td>支援 Serverless Functions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>資料庫</strong></td>
+                            <td>不支援</td>
+                            <td>可搭配 Supabase 等服務</td>
+                        </tr>
+                        <tr>
+                            <td><strong>環境變數</strong></td>
+                            <td>不支援</td>
+                            <td>支援（可安全存放 API Key）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>自訂網址</strong></td>
+                            <td>username.github.io</td>
+                            <td>自訂名稱.netlify.app</td>
+                        </tr>
+                        <tr>
+                            <td><strong>適用場景</strong></td>
+                            <td>靜態網頁、簡報、作品集</td>
+                            <td>需要後端的應用程式</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-container">
+                    <img src="images/img92.png" class="screenshot" alt="GitHub Pages 與 Netlify 比較">
+                    <p class="screenshot-caption">兩個平台的功能比較一覽</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 部署概覽（7 步驟） -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>部署 AI 客服系統：7 大步驟概覽</h2>
+                <div class="flow-chart">
+                    <p style="font-size: 15px; font-weight: 700;">完整部署流程</p>
+                    <p style="font-size: 17px; margin-top: 8px;">
+                        <span class="step-number">1</span>Fork 專案 &rarr;
+                        <span class="step-number">2</span>建立 Supabase &rarr;
+                        <span class="step-number">3</span>執行 SQL &rarr;
+                        <span class="step-number">4</span>取連接資訊 &rarr;
+                        <span class="step-number">5</span>Netlify 部署 &rarr;
+                        <span class="step-number">6</span>登入後台 &rarr;
+                        <span class="step-number">7</span>測試
+                    </p>
+                </div>
+                <div class="concept-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-top: 10px;">
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">1</span>
+                        <p><strong>Fork 專案</strong></p>
+                        <p style="font-size: 12px; color: #666;">複製程式碼到自己帳號</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">2</span>
+                        <p><strong>建立 Supabase</strong></p>
+                        <p style="font-size: 12px; color: #666;">雲端資料庫服務</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">3</span>
+                        <p><strong>執行 SQL</strong></p>
+                        <p style="font-size: 12px; color: #666;">建立所需資料表</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">4</span>
+                        <p><strong>取連接資訊</strong></p>
+                        <p style="font-size: 12px; color: #666;">URL 和金鑰</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">5</span>
+                        <p><strong>Netlify 部署</strong></p>
+                        <p style="font-size: 12px; color: #666;">從 GitHub 自動部署</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">6</span>
+                        <p><strong>登入後台</strong></p>
+                        <p style="font-size: 12px; color: #666;">設定 AI 和 LINE</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <span class="step-number">7</span>
+                        <p><strong>測試</strong></p>
+                        <p style="font-size: 12px; color: #666;">確認系統正常運作</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 什麼是環境變數？ -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>什麼是環境變數？</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>生活比喻：密碼保險箱</h3>
+                        <p>環境變數就像一個<strong>放在伺服器上的密碼保險箱</strong>：</p>
+                        <ul>
+                            <li>只有伺服器程式能打開使用</li>
+                            <li>不會出現在程式碼中</li>
+                            <li>別人看到你的程式碼，也看不到密碼</li>
+                            <li>可以隨時更換，不需要改程式</li>
+                        </ul>
+                        <div class="box warning" style="margin-top: 12px;">
+                            <strong>絕對不要這樣做：</strong>把 API Key 直接寫在 HTML 或 JavaScript 中！任何人都能從瀏覽器看到你的原始碼。
+                        </div>
+                    </div>
+                    <div>
+                        <h3>正確做法</h3>
+<pre>
+// 錯誤示範（千萬不要！）
+const apiKey = "sk-abc123..."
+
+// 正確做法（使用環境變數）
+const apiKey = process.env.API_KEY
+</pre>
+                        <div class="box success">
+                            <strong>環境變數的好處：</strong>
+                            <ul style="margin-bottom: 0;">
+                                <li>API Key 安全不外洩</li>
+                                <li>不同環境可用不同設定</li>
+                                <li>更換金鑰不需改程式碼</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 小成品 21 完成 -->
+        <div class="slide">
+            <div class="content-card" style="text-align: center;">
+                <div class="box success" style="padding: 30px; font-size: 16px;">
+                    <h2 style="border: none; text-align: center; color: #155724;">小成品 21 完成！</h2>
+                    <p style="font-size: 18px; margin-top: 10px;">你已經了解 AI 客服系統的架構與運作原理</p>
+                </div>
+                <div class="concept-grid" style="margin-top: 20px;">
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>前端 vs 後端的差異</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>GitHub Pages vs Netlify</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>AI 客服系統資料流向</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>環境變數的概念</p>
+                    </div>
+                </div>
+                <p style="margin-top: 20px; font-size: 14px; color: #666;">接下來，我們要動手把 AI 客服系統部署上線！</p>
+            </div>
+        </div>
+
+        <!-- Slide 12: 小成品 22 標題 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <span class="time-badge">15:00 - 15:30</span>
+                <h1>小成品 22：部署到 Netlify</h1>
+                <p>跟著 7 個步驟，把 AI 客服系統部署到雲端</p>
+                <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">Fork</span>
+                    <span class="tag-badge">Supabase</span>
+                    <span class="tag-badge">SQL</span>
+                    <span class="tag-badge">Netlify</span>
+                    <span class="tag-badge">環境變數</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 步驟 1：Fork AI 客服專案 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">1</span> 步驟 1：Fork AI 客服專案</h2>
+                <ol>
+                    <li>打開專案網址：<code>github.com/ChatGPT3a01/ai_customer_service</code></li>
+                    <li>點擊右上角的 <strong>Fork</strong> 按鈕</li>
+                    <li>Owner 選擇你的 GitHub 帳號</li>
+                    <li>Repository name 保持預設：<code>ai_customer_service</code></li>
+                    <li>點擊 <strong>Create fork</strong></li>
+                </ol>
+                <div class="box info" style="margin-top: 12px;">
+                    <strong>什麼是 Fork？</strong>就像影印一份別人的食譜到你的筆記本，你可以自由修改，不影響原作者的版本。
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img93.jpg" class="screenshot" alt="Fork AI 客服專案">
+                    <p class="screenshot-caption">在 GitHub 上 Fork AI 客服專案到你的帳號</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 步驟 2：Supabase 建立資料庫 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">2</span> 步驟 2：Supabase 建立資料庫</h2>
+                <ol>
+                    <li>前往 <code>supabase.com</code>，點擊 <strong>Start your project</strong></li>
+                    <li>使用 <strong>GitHub 帳號</strong>登入（最方便）</li>
+                    <li>點擊 <strong>New Project</strong></li>
+                    <li>填寫專案資訊：
+                        <ul>
+                            <li>Name：<code>ai-customer-service</code></li>
+                            <li>Database Password：設定一組密碼（請記住！）</li>
+                            <li>Region：<strong>Southeast Asia (Singapore)</strong></li>
+                        </ul>
+                    </li>
+                    <li>點擊 <strong>Create new project</strong>，等待建立完成</li>
+                </ol>
+                <div class="box info">
+                    <strong>為什麼選新加坡？</strong>離台灣最近的伺服器位置，存取速度最快。
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img94.jpg" class="screenshot" alt="Supabase 建立新專案">
+                    <p class="screenshot-caption">在 Supabase 建立新專案，Region 選擇 Singapore</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 步驟 3：執行 SQL 建表 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">3</span> 步驟 3：執行 SQL 建立資料表</h2>
+                <ol>
+                    <li>在 Supabase 左側選單點擊 <strong>SQL Editor</strong></li>
+                    <li>從 Fork 的專案中找到 SQL 檔案</li>
+                    <li>將 SQL 內容全選複製，貼到 SQL Editor</li>
+                    <li>點擊 <strong>Run</strong> 執行</li>
+                </ol>
+                <h3>會建立的資料表</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>資料表名稱</th>
+                            <th>用途說明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>settings</code></td>
+                            <td>系統設定（AI API Key、LINE 資訊等）</td>
+                        </tr>
+                        <tr>
+                            <td><code>processed_events</code></td>
+                            <td>已處理的事件紀錄（防止重複處理）</td>
+                        </tr>
+                        <tr>
+                            <td><code>user_states</code></td>
+                            <td>使用者狀態（追蹤對話進度）</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-container">
+                    <img src="images/img95.jpg" class="screenshot" alt="執行 SQL 建立資料表">
+                    <p class="screenshot-caption">在 SQL Editor 中貼上 SQL 並執行</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: 步驟 4：取得連接資訊 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">4</span> 步驟 4：取得 Supabase 連接資訊</h2>
+                <ol>
+                    <li>在 Supabase 左側選單 &rarr; <strong>Project Settings</strong></li>
+                    <li>點擊 <strong>API</strong> 頁面</li>
+                    <li>記下以下 3 個資訊：</li>
+                </ol>
+                <table style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th>資訊名稱</th>
+                            <th>位置</th>
+                            <th>用途</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Project URL</strong></td>
+                            <td>API Settings 上方</td>
+                            <td>資料庫的網址</td>
+                        </tr>
+                        <tr>
+                            <td><strong>anon key</strong></td>
+                            <td>Project API keys</td>
+                            <td>前端使用的公開金鑰</td>
+                        </tr>
+                        <tr>
+                            <td><strong>service_role key</strong></td>
+                            <td>Project API keys</td>
+                            <td>後端使用的管理金鑰</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="box warning" style="margin-top: 12px;">
+                    <strong>重要警告：</strong><code>service_role key</code> 擁有資料庫的最高權限，<strong>絕對不能外洩</strong>！不要貼在公開的地方，只能放在環境變數中。
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img96.jpg" class="screenshot" alt="取得 Supabase 連接資訊">
+                    <p class="screenshot-caption">在 Project Settings &gt; API 頁面取得連接資訊</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: 步驟 5：Netlify 部署 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">5</span> 步驟 5：Netlify 部署</h2>
+                <ol>
+                    <li>前往 <code>netlify.com</code>，使用 GitHub 帳號登入</li>
+                    <li>點擊 <strong>Add new site</strong> &rarr; <strong>Import an existing project</strong></li>
+                    <li>選擇 <strong>GitHub</strong>，找到剛剛 Fork 的 <code>ai_customer_service</code></li>
+                    <li>設定建構指令：
+                        <ul>
+                            <li>Build command：<code>npm run build</code></li>
+                            <li>Publish directory：<code>dist</code></li>
+                        </ul>
+                    </li>
+                    <li>先不要按 Deploy，還需要設定環境變數！</li>
+                </ol>
+                <div class="box info">
+                    <strong>Netlify 的特色：</strong>每次你在 GitHub 更新程式碼，Netlify 會自動重新部署，不需要手動操作。
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img97.jpg" class="screenshot" alt="Netlify 部署設定">
+                    <p class="screenshot-caption">在 Netlify 匯入 GitHub 專案並設定建構指令</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 設定 4 個環境變數 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>設定環境變數（關鍵步驟！）</h2>
+                <p>在 Netlify 部署前，需要設定 4 個環境變數：</p>
+                <table style="margin-top: 12px;">
+                    <thead>
+                        <tr>
+                            <th>變數名稱</th>
+                            <th>值（來源）</th>
+                            <th>說明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>VITE_SUPABASE_URL</code></td>
+                            <td>Supabase Project URL</td>
+                            <td>前端使用的資料庫網址</td>
+                        </tr>
+                        <tr>
+                            <td><code>VITE_SUPABASE_ANON_KEY</code></td>
+                            <td>Supabase anon key</td>
+                            <td>前端使用的公開金鑰</td>
+                        </tr>
+                        <tr>
+                            <td><code>SUPABASE_URL</code></td>
+                            <td>Supabase Project URL（同上）</td>
+                            <td>後端 Functions 使用</td>
+                        </tr>
+                        <tr>
+                            <td><code>SUPABASE_SERVICE_ROLE_KEY</code></td>
+                            <td>Supabase service_role key</td>
+                            <td>後端管理用金鑰</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="box info" style="margin-top: 12px;">
+                    <strong>為什麼有兩個 URL？</strong><code>VITE_</code> 開頭的變數會被打包到前端程式碼中，沒有 <code>VITE_</code> 開頭的只在後端 Functions 中使用。前後端需要各自的設定。
+                </div>
+                <div class="box warning">
+                    <strong>設定完環境變數後，再點擊 Deploy site！</strong>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img98.png" class="screenshot" alt="Netlify 環境變數設定頁面">
+                    <p class="screenshot-caption">在 Netlify 的 Environment variables 頁面新增環境變數</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: 步驟 6：登入管理後台 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">6</span> 步驟 6：登入管理後台</h2>
+                <h3>6-1. 建立管理員帳號</h3>
+                <ol>
+                    <li>回到 Supabase，左側選單 &rarr; <strong>Authentication</strong></li>
+                    <li>點擊 <strong>Add user</strong> &rarr; <strong>Create new user</strong></li>
+                    <li>輸入你的 Email 和密碼</li>
+                    <li>勾選 <strong>Auto Confirm User</strong></li>
+                </ol>
+
+                <h3 style="margin-top: 15px;">6-2. 登入管理後台</h3>
+                <ol>
+                    <li>打開你的 Netlify 網站：<code>你的名稱.netlify.app</code></li>
+                    <li>用剛建立的帳號密碼登入</li>
+                    <li>進入管理後台後，可以設定：
+                        <ul>
+                            <li>AI API Key（Gemini 或 ChatGPT）</li>
+                            <li>LINE Channel Access Token</li>
+                            <li>LINE Channel Secret</li>
+                        </ul>
+                    </li>
+                </ol>
+                <div class="box info">
+                    <strong>沒有 API Key 也沒關係！</strong>目前先完成部署，確認管理後台能正常登入即可。API Key 和 LINE 設定可以之後再補。
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img99.jpg" class="screenshot" alt="AI 客服系統部署成功">
+                    <p class="screenshot-caption">部署成功！你的 AI 客服系統已經上線了</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: 步驟 7：測試 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="step-number">7</span> 步驟 7：測試與問題排解</h2>
+                <h3>確認以下項目正常</h3>
+                <ul>
+                    <li>Netlify 網站能正常開啟（不是空白頁）</li>
+                    <li>管理後台能成功登入</li>
+                    <li>設定頁面能正常顯示各欄位</li>
+                </ul>
+
+                <h3 style="margin-top: 15px;">常見問題排解</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>問題</th>
+                            <th>可能原因</th>
+                            <th>解決方法</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>打開網站是空白頁</td>
+                            <td>環境變數設定錯誤</td>
+                            <td>檢查 4 個環境變數是否正確填入</td>
+                        </tr>
+                        <tr>
+                            <td>登入失敗</td>
+                            <td>帳號未建立或未確認</td>
+                            <td>回 Supabase Authentication 檢查</td>
+                        </tr>
+                        <tr>
+                            <td>部署失敗</td>
+                            <td>Build command 設定錯誤</td>
+                            <td>確認 Build command 為 <code>npm run build</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="box info" style="margin-top: 12px;">
+                    <strong>修改後如何重新部署？</strong>在 Netlify &rarr; Deploys &rarr; <strong>Trigger deploy</strong> &rarr; <strong>Deploy site</strong>，或直接在 GitHub 推送新的 commit。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 21: 兩種部署完整比較 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>兩種部署方式的最終比較</h2>
+                <div class="two-column">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>GitHub Pages</h3>
+                        <p style="font-size: 28px; margin: 10px 0;">擺地攤</p>
+                        <ul style="text-align: left;">
+                            <li>簡單快速，馬上開張</li>
+                            <li>擺出什麼，客人就看什麼</li>
+                            <li>不需要廚房（後端）</li>
+                            <li>不需要倉庫（資料庫）</li>
+                            <li>適合靜態展示</li>
+                        </ul>
+                        <div class="box info" style="margin-top: 10px;">
+                            適合：簡報、作品集、個人網頁
+                        </div>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Netlify + Supabase</h3>
+                        <p style="font-size: 28px; margin: 10px 0;">開店面</p>
+                        <ul style="text-align: left;">
+                            <li>需要更多準備工作</li>
+                            <li>有廚房可以現做料理（後端）</li>
+                            <li>有倉庫儲存食材（資料庫）</li>
+                            <li>有保險箱放機密（環境變數）</li>
+                            <li>適合互動式應用</li>
+                        </ul>
+                        <div class="box success" style="margin-top: 10px;">
+                            適合：AI 客服、會員系統、動態應用
+                        </div>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 15px; font-size: 15px; color: #764ba2; font-weight: 700;">
+                    兩種都學會了，你就能根據需求選擇最適合的部署方式！
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 22: 實作練習 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>實作練習時間</h2>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="concept-card">
+                        <h3>練習 A：檢查部署狀態</h3>
+                        <ol>
+                            <li>打開你的 Netlify 網站</li>
+                            <li>確認首頁正常顯示</li>
+                            <li>嘗試登入管理後台</li>
+                            <li>截圖記錄你的成果</li>
+                        </ol>
+                        <span class="time-badge">5 分鐘</span>
+                    </div>
+                    <div class="concept-card">
+                        <h3>練習 B：自訂網站名稱</h3>
+                        <ol>
+                            <li>在 Netlify &rarr; Site configuration</li>
+                            <li>找到 <strong>Change site name</strong></li>
+                            <li>改成你喜歡的名稱</li>
+                            <li>例如：<code>my-ai-chat.netlify.app</code></li>
+                        </ol>
+                        <span class="time-badge">3 分鐘</span>
+                    </div>
+                    <div class="concept-card">
+                        <h3>練習 C：整理作品書籤</h3>
+                        <ol>
+                            <li>建立瀏覽器書籤資料夾「我的作品」</li>
+                            <li>加入 GitHub Pages 網站</li>
+                            <li>加入 Netlify 網站</li>
+                            <li>加入 GitHub 專案頁面</li>
+                        </ol>
+                        <span class="time-badge">2 分鐘</span>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>完成以上練習後，你已經擁有兩個上線的網站作品了！</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 23: 小成品 22 完成 -->
+        <div class="slide">
+            <div class="content-card" style="text-align: center;">
+                <div class="box success" style="padding: 30px; font-size: 16px;">
+                    <h2 style="border: none; text-align: center; color: #155724;">小成品 22 完成！</h2>
+                    <p style="font-size: 18px; margin-top: 10px;">你已經成功將 AI 客服系統部署到 Netlify 雲端！</p>
+                </div>
+                <div class="concept-grid" style="margin-top: 20px;">
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>Fork AI 客服專案</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>建立 Supabase 資料庫</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>設定環境變數並部署</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>登入管理後台測試</p>
+                    </div>
+                </div>
+                <p style="margin-top: 20px; font-size: 14px; color: #666;">恭喜！你現在擁有一個部署在雲端的企業級 AI 應用系統！</p>
+            </div>
+        </div>
+
+        <!-- Slide 24: 本章回顧 + 下一章 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>本章回顧</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Netlify</h3>
+                        <p>支援前端 + 後端的雲端部署平台，從 GitHub 自動部署</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Supabase</h3>
+                        <p>開源的雲端資料庫服務，提供 PostgreSQL 資料庫和 Auth 認證</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>環境變數</h3>
+                        <p>安全存放 API Key 和機密資訊的「密碼保險箱」</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>前端 vs 後端</h3>
+                        <p>用餐區（使用者看到的）與廚房（伺服器處理的）</p>
+                    </div>
+                </div>
+                <div class="flow-chart" style="margin-top: 20px;">
+                    <p style="font-size: 16px; font-weight: 700;">下一章預告</p>
+                    <h3 style="margin-top: 8px;">Part 13 - 上線測試與課程總結</h3>
+                    <p style="margin-top: 8px;">最終檢查所有作品、課程回顧、學習路線圖、結業分享</p>
+                    <a href="Part13_上線測試與課程總結.html" class="nav-btn" style="display: inline-block; margin-top: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 10px 24px; font-size: 15px;">前往 Part 13 &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide=0;const slides=document.querySelectorAll('.slide');const totalSlides=slides.length;
+        function init(){createIndicators();showSlide(0);updateButtons();document.addEventListener('keydown',handleKeydown);}
+        function handleKeydown(e){if(e.key==='ArrowLeft')changeSlide(-1);if(e.key==='ArrowRight')changeSlide(1);if(e.key==='Home')goToSlide(0);if(e.key==='End')goToSlide(totalSlides-1);}
+        function createIndicators(){const c=document.getElementById('indicatorContainer');c.innerHTML='';slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot';d.onclick=()=>goToSlide(i);c.appendChild(d);});}
+        function showSlide(i){if(i<0)i=0;if(i>=totalSlides)i=totalSlides-1;slides.forEach(s=>s.classList.remove('active'));slides[i].classList.add('active');currentSlide=i;document.querySelectorAll('.dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));updateButtons();document.getElementById('pageIndicator').textContent=`${i+1} / ${totalSlides}`;}
+        function changeSlide(d){showSlide(currentSlide+d);}function goToSlide(i){showSlide(i);}
+        function updateButtons(){document.getElementById('prevBtn').disabled=currentSlide===0;document.getElementById('nextBtn').disabled=currentSlide===totalSlides-1;}
+        function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen();}
+        init();
+    </script>
+</body>
+</html>

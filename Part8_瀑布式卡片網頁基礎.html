@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 8 - 瀑布式卡片網頁基礎</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+.nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.15); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+.nav-title { font-size: 20px; font-weight: 700; color: #fff; }
+.nav-buttons { display: flex; gap: 12px; align-items: center; }
+.nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+.nav-btn:hover { background: rgba(255,255,255,0.4); }
+.nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+.nav-arrow:hover { background: rgba(255,255,255,0.5); transform: translateY(-50%) scale(1.1); }
+.prev-arrow { left: 30px; } .next-arrow { right: 30px; }
+.nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 40px; opacity: 0; transition: opacity 0.4s ease; }
+.slide.active { display: flex; opacity: 1; z-index: 20; }
+.content-card { background: rgba(255,255,255,0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 30px 40px; max-width: 1400px; width: 95%; max-height: 88vh; overflow-y: auto; }
+h1 { color: #667eea; font-size: 38px; margin-bottom: 16px; text-align: center; font-weight: 800; }
+h2 { color: #764ba2; font-size: 26px; margin-bottom: 16px; border-bottom: 3px solid #667eea; padding-bottom: 8px; }
+h3 { color: #667eea; font-size: 19px; margin: 14px 0 8px 0; }
+p, li { font-size: 15px; line-height: 1.65; color: #444; margin-bottom: 6px; }
+ul, ol { margin-left: 22px; margin-bottom: 12px; }
+code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+pre { background: #282c34; color: #abb2bf; padding: 12px; border-radius: 10px; margin: 10px 0; font-size: 12px; font-family: 'Consolas', monospace; overflow-x: auto; line-height: 1.5; }
+.box { padding: 10px 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid; font-size: 14px; }
+.info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+.warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+.success { background: #d4edda; border-color: #28a745; color: #155724; }
+.concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; }
+.concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+.concept-card:hover { transform: translateY(-3px); border-color: #667eea; }
+.tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin: 2px; }
+.time-badge { display: inline-block; background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; font-weight: 700; font-size: 13px; margin-right: 8px; }
+.screenshot { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin: 12px 0; border: 2px solid #e0e0e0; }
+.screenshot-container { text-align: center; margin: 12px 0; }
+.screenshot-caption { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }
+.two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+.indicators { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 8px 15px; background: rgba(0,0,0,0.3); border-radius: 25px; backdrop-filter: blur(5px); flex-wrap: wrap; max-width: 90%; justify-content: center; }
+.dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+.dot.active { background: #fff; transform: scale(1.4); }
+.cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+.cover-content h1 { font-size: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.cover-subtitle { font-size: 22px; color: #764ba2; margin-bottom: 20px; }
+.cover-info { font-size: 15px; color: #888; margin-top: 25px; }
+.section-divider { text-align: center; padding: 25px; }
+.section-divider h1 { font-size: 42px; }
+.section-divider p { font-size: 18px; color: #666; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+th, td { border: 1px solid #e0e0e0; padding: 10px 12px; }
+th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+tr:nth-child(even) { background: #f8f9ff; }
+.flow-chart { background: #f8f9ff; padding: 15px; border-radius: 10px; text-align: center; margin: 15px 0; }
+</style>
+</head>
+<body>
+
+<!-- 導航列 -->
+<div class="nav-bar">
+    <div class="nav-title">Part 8 - 瀑布式卡片網頁基礎</div>
+    <div class="nav-buttons">
+        <a href="Day2.html" class="nav-btn">首頁</a>
+        <a href="Part9_真實專案與卡片內容.html" class="nav-btn">下一章 &rarr;</a>
+        <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+        <span class="nav-btn" id="pageIndicator">1 / 20</span>
+    </div>
+</div>
+<button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&larr;</button>
+<button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&rarr;</button>
+
+<!-- ==================== Slide 1：封面 ==================== -->
+<div class="slide active">
+    <div class="content-card cover-content">
+        <h1>Part 8：瀑布式卡片網頁基礎</h1>
+        <p class="cover-subtitle">認識另一種網頁呈現方式，動手做出你的第一張卡片</p>
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            <span class="tag-badge">瀑布式</span>
+            <span class="tag-badge">div 容器</span>
+            <span class="tag-badge">卡片設計</span>
+            <span class="tag-badge">AI 生成模板</span>
+        </div>
+        <p class="cover-info">小成品 13-14 | Day 2 上午 | 曾慶良（阿亮老師）| AI 協作簡報實戰工作坊</p>
+    </div>
+</div>
+
+<!-- ==================== Slide 2：目錄 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h1>本章學習地圖</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">本章包含 2 個小成品，帶你從認識瀑布式設計到用 AI 快速生成模板</p>
+        <div class="two-column">
+            <div class="concept-card">
+                <h3>小成品 13：認識瀑布式卡片網頁</h3>
+                <span class="time-badge">09:00 - 09:30 | 30 分鐘</span>
+                <ul>
+                    <li>了解 Reveal.js vs 瀑布式差異</li>
+                    <li>認識 <code>&lt;div&gt;</code> 容器概念</li>
+                    <li>動手做出第一張卡片</li>
+                    <li>CSS 讓卡片變好看</li>
+                    <li>瀏覽器預覽與開發者工具</li>
+                </ul>
+            </div>
+            <div class="concept-card">
+                <h3>小成品 14：用 AI 生成卡片模板</h3>
+                <span class="time-badge">09:30 - 10:00 | 30 分鐘</span>
+                <ul>
+                    <li>手繪 Wireframe 草圖</li>
+                    <li>撰寫 AI Prompt</li>
+                    <li>取得完整卡片模板</li>
+                    <li>儲存並預覽結果</li>
+                    <li>檢查並修正問題</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 3：小成品 13 標題頁 ==================== -->
+<div class="slide">
+    <div class="content-card section-divider">
+        <h1>小成品 13：認識瀑布式卡片網頁</h1>
+        <p>看懂它的結構</p>
+        <div style="margin-top: 20px;">
+            <span class="time-badge">09:00 - 09:30</span>
+            <span class="time-badge">30 分鐘</span>
+        </div>
+        <div style="margin-top: 20px;">
+            <span class="tag-badge">瀑布式設計</span>
+            <span class="tag-badge">div 容器</span>
+            <span class="tag-badge">CSS 卡片</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 4：Reveal.js vs 瀑布式卡片比較 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>Reveal.js vs 瀑布式卡片比較</h2>
+        <div class="two-column">
+            <div>
+                <table>
+                    <tr><th>比較項目</th><th>Reveal.js 翻頁式</th><th>瀑布式卡片</th></tr>
+                    <tr><td><strong>瀏覽方式</strong></td><td>一次看一頁</td><td>所有內容在同一頁</td></tr>
+                    <tr><td><strong>切換方式</strong></td><td>按鍵切換</td><td>滾動瀏覽</td></tr>
+                    <tr><td><strong>HTML 結構</strong></td><td><code>&lt;section&gt;</code></td><td><code>&lt;div class="card"&gt;</code></td></tr>
+                    <tr><td><strong>適合場景</strong></td><td>正式演講簡報</td><td>教學、作品集展示</td></tr>
+                    <tr><td><strong>需要框架</strong></td><td>需載入 Reveal.js</td><td>純 HTML + CSS 即可</td></tr>
+                </table>
+                <div class="box info">
+                    <strong>生活化比喻：</strong>Reveal.js = 相簿（翻頁看照片）；瀑布式 = 捲軸（展開閱讀）
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img54.jpg" alt="瀑布式卡片網頁範例" class="screenshot">
+                    <p class="screenshot-caption">瀑布式卡片網頁範例 - 內容由上而下排列</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 5：真實案例觀察 - YouMind 提示詞庫 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>真實案例觀察 - YouMind 提示詞庫</h2>
+        <div class="two-column">
+            <div>
+                <h3>觀察重點</h3>
+                <ul>
+                    <li><strong>卡片排列：</strong>多張卡片整齊排列在頁面上</li>
+                    <li><strong>篩選功能：</strong>頂部有分類標籤可快速篩選</li>
+                    <li><strong>格狀排版（Grid Layout）：</strong>卡片以網格方式呈現，自動適應寬度</li>
+                    <li><strong>滾動瀏覽：</strong>往下滾動可看到更多卡片</li>
+                </ul>
+                <div class="box info">
+                    <strong>學習觀察法：</strong>看到喜歡的網頁，先觀察它的版面結構 — 哪些是卡片？怎麼排列？有什麼互動效果？
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img55.jpg" alt="YouMind 提示詞庫" class="screenshot">
+                    <p class="screenshot-caption">YouMind 提示詞庫 - 典型的瀑布式卡片網頁</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 6：動手做你的第一張卡片 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>動手做你的第一張卡片</h2>
+        <div class="two-column">
+            <div>
+                <h3>操作步驟</h3>
+                <p><span class="step-number">1</span>打開 VS Code</p>
+                <p><span class="step-number">2</span>點選「新增檔案」（或按 <code>Ctrl + N</code>）</p>
+                <p><span class="step-number">3</span>將檔案命名為 <code>my-card-page.html</code></p>
+                <p><span class="step-number">4</span>輸入基本的 HTML 結構</p>
+                <p><span class="step-number">5</span>按 <code>Ctrl + S</code> 儲存</p>
+                <div class="box info">
+                    <strong>檔名小提醒：</strong>使用英文和連字號命名，避免中文和空格。例如 <code>my-card-page.html</code>
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img56.jpg" alt="VS Code 新增檔案" class="screenshot">
+                    <p class="screenshot-caption">在 VS Code 中新增 HTML 檔案</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 7：基本卡片 HTML 程式碼 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>基本卡片 HTML 程式碼</h2>
+        <div class="two-column">
+            <div>
+                <h3>一張卡片的基本結構</h3>
+<pre>&lt;div class="card"&gt;
+    &lt;h2&gt;第一張卡片&lt;/h2&gt;
+    &lt;p&gt;卡片內容&lt;/p&gt;
+&lt;/div&gt;</pre>
+                <h3>結構拆解</h3>
+                <ul>
+                    <li><code>&lt;div&gt;</code> = <strong>division</strong>（區塊），像收納盒把東西包在一起</li>
+                    <li><code>class="card"</code> 是卡片的「名字」，方便 CSS 找到它來美化</li>
+                    <li><code>&lt;h2&gt;</code> 是卡片標題</li>
+                    <li><code>&lt;p&gt;</code> 是卡片內文</li>
+                </ul>
+                <div class="box info">
+                    <strong>關鍵觀念：</strong><code>&lt;div&gt;</code> 本身不會顯示任何東西，它只是一個「容器」，用來把相關內容包在一起，再用 CSS 加上樣式。
+                </div>
+            </div>
+            <div>
+                <h3>多張卡片範例</h3>
+<pre>&lt;div class="card"&gt;
+    &lt;h2&gt;自我介紹&lt;/h2&gt;
+    &lt;p&gt;大家好，我是阿亮老師&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div class="card"&gt;
+    &lt;h2&gt;我的興趣&lt;/h2&gt;
+    &lt;p&gt;寫程式、教學、喝咖啡&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div class="card"&gt;
+    &lt;h2&gt;學習目標&lt;/h2&gt;
+    &lt;p&gt;學會用 AI 做出好看的網頁&lt;/p&gt;
+&lt;/div&gt;</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 8：讓卡片變好看的 CSS ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>讓卡片變好看的 CSS</h2>
+        <div class="two-column">
+            <div>
+                <h3>關鍵 CSS 屬性</h3>
+<pre>.card {
+    background: white;       /* 白色背景 */
+    max-width: 800px;        /* 最寬 800px */
+    margin: 30px auto;       /* 置中 */
+    padding: 40px;           /* 內距 */
+    border-radius: 16px;     /* 圓角 */
+    box-shadow:
+      0 4px 15px rgba(0,0,0,0.1);  /* 陰影 */
+}</pre>
+                <div class="box info">
+                    <strong>記住這兩個：</strong><code>border-radius</code> = 圓角效果，<code>box-shadow</code> = 陰影效果。這兩個屬性是讓卡片從「方塊」變「質感卡片」的關鍵！
+                </div>
+            </div>
+            <div>
+                <h3>屬性說明</h3>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="concept-card">
+                        <h3>background: white;</h3>
+                        <p>白色背景，讓卡片與頁面背景區隔開來</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>max-width: 800px;</h3>
+                        <p>限制最大寬度，避免在大螢幕上太寬</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>margin: 30px auto;</h3>
+                        <p>上下留 30px，左右自動置中</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>padding: 40px;</h3>
+                        <p>內容與邊框之間留 40px 呼吸空間</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>border-radius: 16px;</h3>
+                        <p>圓角 16px，讓卡片不再方方正正</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>box-shadow</h3>
+                        <p>陰影效果，讓卡片看起來浮在頁面上</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 9：瀏覽器預覽效果 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>瀏覽器預覽效果</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 15px;">三張白色卡片在灰色背景上，簡潔又有質感</p>
+        <div class="screenshot-container">
+            <img src="images/img57.jpg" alt="卡片網頁預覽" class="screenshot" style="max-width: 80%;">
+            <p class="screenshot-caption">加上 CSS 後的卡片效果 - 圓角、陰影、置中排列</p>
+        </div>
+        <div class="box success">
+            <strong>成功了！</strong>只需要簡單的 HTML + CSS，就能做出好看的卡片網頁。這就是瀑布式設計的基礎！
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 10：練習時間 - 改內容和顏色 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>練習時間 - 改內容和顏色</h2>
+        <div class="concept-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="concept-card">
+                <h3>練習 A：改成自己的主題</h3>
+                <p>把卡片標題和內容換成你自己的主題，例如：自我介紹、旅遊紀錄、學習筆記等。</p>
+            </div>
+            <div class="concept-card">
+                <h3>練習 B：改卡片顏色</h3>
+                <p>試試這些背景色：</p>
+                <ul>
+                    <li><code>#e3f2fd</code> 淺藍</li>
+                    <li><code>#f3e5f5</code> 淺紫</li>
+                    <li><code>#e8f5e9</code> 淺綠</li>
+                    <li><code>#fff3e0</code> 淺橘</li>
+                </ul>
+            </div>
+            <div class="concept-card">
+                <h3>練習 C：增加更多卡片</h3>
+                <p>複製整個 <code>&lt;div class="card"&gt;...&lt;/div&gt;</code> 區塊，貼上多次，看看瀑布式的滾動效果！</p>
+            </div>
+        </div>
+        <div class="screenshot-container" style="margin-top: 15px;">
+            <img src="images/img58.jpg" alt="修改後的卡片" class="screenshot" style="max-width: 70%;">
+            <p class="screenshot-caption">修改後的卡片 - 不同顏色帶來不同感覺</p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 11：開發者工具偷看秘訣 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>開發者工具偷看秘訣</h2>
+        <div class="two-column">
+            <div>
+                <h3>怎麼打開？</h3>
+                <p><span class="step-number">1</span>在任何網頁上按<strong>右鍵</strong></p>
+                <p><span class="step-number">2</span>選擇「<strong>檢查</strong>」（或按 <code>F12</code>）</p>
+                <h3>你會看到什麼？</h3>
+                <ul>
+                    <li><strong>左半邊：</strong>HTML 原始碼 — 網頁的骨架結構</li>
+                    <li><strong>右半邊：</strong>CSS 樣式 — 每個元素的外觀設定</li>
+                </ul>
+                <h3>偷學技巧</h3>
+                <ul>
+                    <li>找找看 <code>border-radius</code> 的值是多少</li>
+                    <li>看看 <code>box-shadow</code> 怎麼設定的</li>
+                    <li>觀察別人用了什麼顏色和字體</li>
+                </ul>
+                <div class="box info">
+                    <strong>學習密技：</strong>開發者工具是前端工程師最常用的工具，也是初學者「偷學」別人網頁設計的秘密武器！
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img59.png" alt="開發者工具" class="screenshot">
+                    <p class="screenshot-caption">Chrome 開發者工具 - 左邊 HTML，右邊 CSS</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 12：小成品 13 完成確認 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>小成品 13 完成確認</h2>
+        <div class="box success">
+            <strong>恭喜！</strong>你已經完成小成品 13，認識了瀑布式卡片網頁的基礎概念。
+        </div>
+        <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x1F4E6;</div>
+                <h3>div 是容器標籤</h3>
+                <p><code>&lt;div&gt;</code> 就像收納盒，把相關內容包在一起，方便排版和美化</p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x2728;</div>
+                <h3>CSS 讓卡片好看</h3>
+                <p><code>border-radius</code> + <code>box-shadow</code> 是讓卡片有質感的關鍵屬性</p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x1F4DC;</div>
+                <h3>瀑布式 = 往下滾動</h3>
+                <p>所有卡片在同一頁面，用滾動方式瀏覽，與 Reveal.js 翻頁式不同</p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x1F50D;</div>
+                <h3>檢查功能是學習秘密武器</h3>
+                <p>按右鍵「檢查」可以看到任何網頁的 HTML 和 CSS，是偷學的最佳工具</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 13：小成品 14 標題頁 ==================== -->
+<div class="slide">
+    <div class="content-card section-divider">
+        <h1>小成品 14：用 AI 生成完整的瀑布式卡片模板</h1>
+        <p>手繪草圖 + 詳細 Prompt，讓 AI 幫你快速產出模板</p>
+        <div style="margin-top: 20px;">
+            <span class="time-badge">09:30 - 10:00</span>
+            <span class="time-badge">30 分鐘</span>
+        </div>
+        <div style="margin-top: 20px;">
+            <span class="tag-badge">手繪 Wireframe</span>
+            <span class="tag-badge">AI Prompt</span>
+            <span class="tag-badge">模板生成</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 14：先畫手繪草圖 Wireframe ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>先畫手繪草圖 Wireframe</h2>
+        <div class="two-column">
+            <div>
+                <h3>版面結構規劃</h3>
+                <div class="flow-chart">
+                    <p style="font-size: 16px; font-weight: 700; color: #667eea;">
+                        Hero Section（大標題區）<br>
+                        <span style="font-size: 24px;">&darr;</span><br>
+                        卡片區（兩欄排列）<br>
+                        <span style="font-size: 24px;">&darr;</span><br>
+                        全寬特色卡片<br>
+                        <span style="font-size: 24px;">&darr;</span><br>
+                        Footer（頁尾）
+                    </p>
+                </div>
+                <h3>為什麼要先畫草圖？</h3>
+                <ul>
+                    <li>把腦中的想法「具象化」</li>
+                    <li>讓 AI 更清楚你要什麼</li>
+                    <li>避免來回修改浪費時間</li>
+                    <li>不需要畫得漂亮，能看懂就好</li>
+                </ul>
+                <div class="box info">
+                    <strong>記住：</strong>手繪草圖不是藝術作品，是「溝通工具」。用方框和線條簡單畫出版面結構就好！
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img60.jpg" alt="手繪草圖範例" class="screenshot">
+                    <p class="screenshot-caption">手繪 Wireframe 草圖範例 - 簡單畫出版面結構</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 15：撰寫詳細 AI Prompt ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>撰寫詳細 AI Prompt</h2>
+        <div class="two-column">
+            <div>
+                <h3>Prompt 要點</h3>
+                <ul>
+                    <li><strong>架構：</strong>單頁式 HTML，CSS 內嵌（不需外部檔案）</li>
+                    <li><strong>內容區塊：</strong>Hero 大標題 + 目錄區 + 6-8 張卡片 + Footer</li>
+                    <li><strong>純 CSS：</strong>不需要任何 JavaScript 框架</li>
+                </ul>
+                <h3>視覺要求</h3>
+                <ul>
+                    <li>藍紫漸層背景</li>
+                    <li>卡片圓角（border-radius: 16px）</li>
+                    <li>卡片陰影（box-shadow）</li>
+                    <li>響應式設計（手機也能正常顯示）</li>
+                </ul>
+                <h3>動畫要求</h3>
+                <ul>
+                    <li>使用 <code>Intersection Observer</code> 實現滾動動畫</li>
+                    <li>卡片滾動到畫面時淡入浮現</li>
+                </ul>
+                <div class="box info">
+                    <strong>關鍵心法：</strong>好的 Prompt 就是要夠詳細！描述越具體，AI 生成的結果越接近你想要的。
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img60.png" alt="AI Prompt 輸入" class="screenshot">
+                    <p class="screenshot-caption">在 AI 對話中輸入詳細的 Prompt</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 16：取得 AI 生成的 HTML ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>取得 AI 生成的 HTML</h2>
+        <div class="two-column">
+            <div>
+                <h3>AI 回傳結果</h3>
+                <ul>
+                    <li>AI 通常會回傳 <strong>200-500 行</strong>的 HTML 程式碼</li>
+                    <li>包含完整的 HTML 結構 + CSS 樣式</li>
+                    <li>可能還包含 JavaScript 動畫效果</li>
+                </ul>
+                <h3>操作步驟</h3>
+                <p><span class="step-number">1</span>找到 AI 回覆中的程式碼區塊</p>
+                <p><span class="step-number">2</span>點擊「<strong>複製</strong>」按鈕一鍵複製</p>
+                <p><span class="step-number">3</span>回到 VS Code 貼上程式碼</p>
+                <div class="box warning">
+                    <strong>注意：</strong>如果 AI 回覆被截斷（程式碼不完整），跟 AI 說「請繼續」讓它接著輸出。
+                </div>
+            </div>
+            <div>
+                <div class="screenshot-container">
+                    <img src="images/img61.jpg" alt="AI 生成的程式碼" class="screenshot">
+                    <p class="screenshot-caption">AI 回傳的完整 HTML 程式碼 - 點擊複製按鈕即可</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 17：儲存並預覽 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>儲存並預覽</h2>
+        <h3>操作步驟</h3>
+        <div class="concept-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">&#x1F5D1;</div>
+                <h3>Step 1</h3>
+                <p>在 VS Code 中<br><strong>全選刪除</strong>舊內容<br><code>Ctrl + A</code> 再 <code>Delete</code></p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">&#x1F4CB;</div>
+                <h3>Step 2</h3>
+                <p><strong>貼上</strong>新程式碼<br><code>Ctrl + V</code></p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">&#x1F4BE;</div>
+                <h3>Step 3</h3>
+                <p><strong>儲存</strong>檔案<br><code>Ctrl + S</code></p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">&#x1F310;</div>
+                <h3>Step 4</h3>
+                <p><strong>預覽</strong>結果<br>按 <code>F5</code> 或用 Live Server</p>
+            </div>
+        </div>
+        <div class="box success" style="text-align: center; margin-top: 15px;">
+            <strong>看到漂亮的卡片網頁了！</strong>如果效果不滿意，可以回頭修改 Prompt 或直接調整程式碼。
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 18：檢查並修正問題 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>檢查並修正問題</h2>
+        <div class="two-column">
+            <div>
+                <h3>檢查清單</h3>
+                <ul>
+                    <li><span class="step-number">1</span><strong>滾動所有卡片</strong> — 內容是否完整顯示？</li>
+                    <li><span class="step-number">2</span><strong>縮小視窗測手機</strong> — 響應式有沒有正常運作？</li>
+                    <li><span class="step-number">3</span><strong>點擊目錄連結</strong> — 能否正確跳到對應區域？</li>
+                    <li><span class="step-number">4</span><strong>檢查動畫</strong> — 滾動時卡片有沒有淡入效果？</li>
+                </ul>
+                <h3>發現問題怎麼辦？</h3>
+                <p>告訴 AI 修正！用<strong>文字描述</strong>你看到的問題：</p>
+<pre>「第三張卡片的標題超出邊界了，
+請幫我修正讓它自動換行。」
+
+「手機版本時，兩欄變成一欄，
+但圖片太大了，請縮小。」</pre>
+            </div>
+            <div>
+                <div class="box success">
+                    <strong>AI 協作精髓：</strong><br>
+                    AI 生成 &rarr; 你檢查 &rarr; 回報問題 &rarr; AI 修正<br><br>
+                    這就是 AI 協作的完整流程！你不需要自己修程式碼，只需要會「描述你看到的問題」。
+                </div>
+                <div class="box warning">
+                    <strong>常見需要修正的問題：</strong>
+                    <ul>
+                        <li>文字太小或太大</li>
+                        <li>卡片間距不均勻</li>
+                        <li>手機版排版跑掉</li>
+                        <li>動畫效果太快或太慢</li>
+                        <li>顏色搭配不好看</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 19：小成品 14 完成確認 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>小成品 14 完成確認</h2>
+        <div class="box success">
+            <strong>太棒了！</strong>你已經學會用 AI 生成完整的瀑布式卡片模板。
+        </div>
+        <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x270D;</div>
+                <h3>手繪草圖 + 詳細 Prompt = 好結果</h3>
+                <p>先規劃版面結構，再用具體描述告訴 AI，產出的結果才會接近預期</p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x1F50E;</div>
+                <h3>AI 生成結果需要檢查</h3>
+                <p>AI 不是萬能的，每次生成後都要在瀏覽器預覽，確認效果符合預期</p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x1F4AC;</div>
+                <h3>修正方式：描述你看到的</h3>
+                <p>發現問題不用自己改程式碼，用文字告訴 AI「你看到什麼問題」即可</p>
+            </div>
+            <div class="concept-card" style="text-align: center;">
+                <div style="font-size: 36px; margin-bottom: 8px;">&#x1F3AF;</div>
+                <h3>模板 + 內容 = 完成品</h3>
+                <p>AI 幫你做好模板骨架，你負責填入自己的內容，就是一個完整的作品</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 20：本章回顧 + 下一章 ==================== -->
+<div class="slide">
+    <div class="content-card">
+        <h2>Part 8 本章回顧</h2>
+        <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="concept-card">
+                <h3>div 容器</h3>
+                <p>用來包裝卡片的 HTML 標籤，<code>&lt;div&gt;</code> 就像收納盒，搭配 class 讓 CSS 找到它</p>
+            </div>
+            <div class="concept-card">
+                <h3>CSS 魔法</h3>
+                <p><code>border-radius</code> + <code>box-shadow</code> 讓卡片好看，加上 <code>padding</code> 和 <code>margin</code> 控制間距</p>
+            </div>
+            <div class="concept-card">
+                <h3>AI 生成模板</h3>
+                <p>用詳細 Prompt 讓 AI 幫你做，手繪草圖先規劃，AI 30 秒產出完整模板</p>
+            </div>
+            <div class="concept-card">
+                <h3>瀑布式 vs Reveal.js</h3>
+                <p>兩種網頁呈現方式：瀑布式用滾動瀏覽，Reveal.js 用翻頁切換，各有適合的場景</p>
+            </div>
+        </div>
+        <div class="flow-chart" style="margin-top: 20px;">
+            <h3 style="margin-bottom: 10px;">下一章預告</h3>
+            <p style="font-size: 16px; font-weight: 700; color: #764ba2;">
+                Part 9 - 真實專案與卡片內容<br>
+                <span style="font-size: 14px; font-weight: 400; color: #666;">用真實專案素材填充卡片，讓網頁不只是模板，而是有內容的作品</span>
+            </p>
+        </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="Part9_真實專案與卡片內容.html" class="nav-btn" style="display: inline-block; margin-top: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 10px 24px; font-size: 15px;">前往 Part 9 &rarr;</a>
+        </div>
+    </div>
+</div>
+
+<!-- 頁面指示器 + JavaScript -->
+<div class="indicators" id="indicatorContainer"></div>
+<script>
+    let currentSlide=0;const slides=document.querySelectorAll('.slide');const totalSlides=slides.length;
+    function init(){createIndicators();showSlide(0);updateButtons();document.addEventListener('keydown',handleKeydown);}
+    function handleKeydown(e){if(e.key==='ArrowLeft')changeSlide(-1);if(e.key==='ArrowRight')changeSlide(1);if(e.key==='Home')goToSlide(0);if(e.key==='End')goToSlide(totalSlides-1);}
+    function createIndicators(){const c=document.getElementById('indicatorContainer');c.innerHTML='';slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot';d.onclick=()=>goToSlide(i);c.appendChild(d);});}
+    function showSlide(i){if(i<0)i=0;if(i>=totalSlides)i=totalSlides-1;slides.forEach(s=>s.classList.remove('active'));slides[i].classList.add('active');currentSlide=i;document.querySelectorAll('.dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));updateButtons();document.getElementById('pageIndicator').textContent=`${i+1} / ${totalSlides}`;}
+    function changeSlide(d){showSlide(currentSlide+d);}function goToSlide(i){showSlide(i);}
+    function updateButtons(){document.getElementById('prevBtn').disabled=currentSlide===0;document.getElementById('nextBtn').disabled=currentSlide===totalSlides-1;}
+    function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen();}
+    init();
+</script>
+
+</body>
+</html>

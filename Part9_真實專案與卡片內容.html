@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 9 - 真實專案與卡片內容</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.15); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 20px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 12px; align-items: center; }
+        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .nav-arrow:hover { background: rgba(255,255,255,0.5); transform: translateY(-50%) scale(1.1); }
+        .prev-arrow { left: 30px; } .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 40px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255,255,255,0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 30px 40px; max-width: 1400px; width: 95%; max-height: 88vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 16px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 16px; border-bottom: 3px solid #667eea; padding-bottom: 8px; }
+        h3 { color: #667eea; font-size: 19px; margin: 14px 0 8px 0; }
+        p, li { font-size: 15px; line-height: 1.65; color: #444; margin-bottom: 6px; }
+        ul, ol { margin-left: 22px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #282c34; color: #abb2bf; padding: 12px; border-radius: 10px; margin: 10px 0; font-size: 12px; font-family: 'Consolas', monospace; overflow-x: auto; line-height: 1.5; }
+        .box { padding: 10px 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid; font-size: 14px; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .concept-card:hover { transform: translateY(-3px); border-color: #667eea; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin: 2px; }
+        .time-badge { display: inline-block; background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; font-weight: 700; font-size: 13px; margin-right: 8px; }
+        .screenshot { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin: 12px 0; border: 2px solid #e0e0e0; }
+        .screenshot-container { text-align: center; margin: 12px 0; }
+        .screenshot-caption { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 8px 15px; background: rgba(0,0,0,0.3); border-radius: 25px; backdrop-filter: blur(5px); flex-wrap: wrap; max-width: 90%; justify-content: center; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.4); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .cover-subtitle { font-size: 22px; color: #764ba2; margin-bottom: 20px; }
+        .cover-info { font-size: 15px; color: #888; margin-top: 25px; }
+        .section-divider { text-align: center; padding: 25px; }
+        .section-divider h1 { font-size: 42px; }
+        .section-divider p { font-size: 18px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .flow-chart { background: #f8f9ff; padding: 15px; border-radius: 10px; text-align: center; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 9 - 真實專案與卡片內容</div>
+        <div class="nav-buttons">
+            <a href="Day2.html" class="nav-btn">首頁</a>
+            <a href="Part8_瀑布式卡片網頁基礎.html" class="nav-btn">&larr; 上一章</a>
+            <a href="Part10_圖片美化與互動效果.html" class="nav-btn">下一章 &rarr;</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 20</span>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&larr;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&rarr;</button>
+
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 9：真實專案與卡片內容</h1>
+                <p class="cover-subtitle">認識 LINE 貼圖 AI 工具，把真實內容填入你的卡片網頁</p>
+                <div style="margin-top: 20px;">
+                    <span class="tag-badge">LINE 貼圖</span>
+                    <span class="tag-badge">開源專案</span>
+                    <span class="tag-badge">GitHub</span>
+                    <span class="tag-badge">AI 生成內容</span>
+                    <span class="tag-badge">搜尋替換</span>
+                </div>
+                <p class="cover-info">小成品 15-16 | Day 2 上午 | 曾慶良（阿亮老師）</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: 目錄 -->
+        <div class="slide">
+            <div class="content-card">
+                <h1>本章目錄</h1>
+                <div class="two-column">
+                    <div class="concept-card">
+                        <h3>小成品 15 - 認識真實專案 LINE 貼圖 AI 工具</h3>
+                        <span class="time-badge">10:00 - 10:30</span>
+                        <ul>
+                            <li>體驗工具操作流程</li>
+                            <li>了解技術架構與檔案結構</li>
+                            <li>整理專案重點筆記</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>小成品 16 - 製作 LINE 貼圖教學的卡片內容</h3>
+                        <span class="time-badge">10:30 - 11:00</span>
+                        <ul>
+                            <li>規劃卡片架構（Hero + 8 張卡片 + Footer）</li>
+                            <li>AI 生成各卡片文字內容</li>
+                            <li>搜尋替換填入真實內容</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 小成品 15 標題頁 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <h1>小成品 15</h1>
+                <p>認識真實專案：LINE 貼圖 AI 工具</p>
+                <span class="time-badge" style="margin-top: 20px;">10:00 - 10:30（30 分鐘）</span>
+                <p style="margin-top: 15px; color: #999;">體驗一個真正的 AI 開源專案，了解它的技術架構</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: 為什麼選 LINE 貼圖工具？ -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>為什麼選 LINE 貼圖工具？</h2>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>有趣且生活相關</h3>
+                        <p>LINE 貼圖是大家每天都在用的東西，學起來特別有感覺！</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>免費公開開源</h3>
+                        <p>完整程式碼公開在 GitHub 上，任何人都可以查看、學習、使用。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>展示 AI 實際應用</h3>
+                        <p>結合了 AI 圖片生成、自動去背等技術，是 AI 應用的絕佳範例。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>用 GitHub Pages 部署</h3>
+                        <p>這個工具本身就是用 GitHub Pages 部署的，和我們學的技術一樣！</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img62.jpg" alt="LINE 貼圖工具首頁" class="screenshot">
+                    <p class="screenshot-caption">LINE 貼圖 AI 製作工具的首頁畫面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 工具的功能流程 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>工具的功能流程</h2>
+                <p>這個工具讓你只要幾個步驟，就能用 AI 生成一整套 LINE 貼圖：</p>
+                <div style="margin-top: 15px;">
+                    <p><span class="step-number">1</span><strong>輸入 API Key</strong> &mdash; 填入你的 Gemini API Key（免費申請）</p>
+                    <p><span class="step-number">2</span><strong>選擇張數</strong> &mdash; 決定要生成幾張貼圖（8 / 16 / 24 / 40 張）</p>
+                    <p><span class="step-number">3</span><strong>描述角色</strong> &mdash; 用文字描述你想要的貼圖角色風格</p>
+                    <p><span class="step-number">4</span><strong>AI 生成</strong> &mdash; Gemini AI 根據描述自動生成圖片</p>
+                    <p><span class="step-number">5</span><strong>自動去背</strong> &mdash; 瀏覽器端自動去除背景，變成透明底圖</p>
+                    <p><span class="step-number">6</span><strong>打包下載</strong> &mdash; 一鍵下載整組貼圖的 ZIP 壓縮檔</p>
+                </div>
+                <div class="box info" style="margin-top: 15px;">
+                    <strong>比喻：</strong>API Key 就像圖書館的借書證 &mdash; 你需要先辦一張卡（免費的），才能借書（使用 AI 服務）。沒有借書證也能逛圖書館（看網站），但不能借書（呼叫 AI）。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: GitHub 專案頁面 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>GitHub 專案頁面</h2>
+                <div class="box info">
+                    <strong>什麼是 GitHub？</strong>簡單說，GitHub 就是程式設計師的「Google 雲端硬碟」。你可以把程式碼存在上面、和別人分享、一起合作修改。
+                </div>
+                <p>我們的 LINE 貼圖工具，完整的程式碼都放在 GitHub 上，任何人都可以：</p>
+                <ul>
+                    <li><strong>查看</strong>：瀏覽所有的程式碼檔案</li>
+                    <li><strong>下載</strong>：把整個專案下載到自己的電腦</li>
+                    <li><strong>複製</strong>：Fork（分叉）一份到自己的帳號下</li>
+                    <li><strong>部署</strong>：透過 GitHub Pages 讓它變成網站</li>
+                </ul>
+                <div class="screenshot-container">
+                    <img src="images/img63.jpg" alt="GitHub 專案頁面" class="screenshot">
+                    <p class="screenshot-caption">GitHub 上的專案頁面，可以看到所有檔案和說明文件</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 專案檔案結構 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>專案檔案結構</h2>
+                <p>打開專案，你會看到這些檔案和資料夾：</p>
+<pre>
+line-sticker-ai/
+  index.html          &larr; 網站入口（大門）
+  src/
+    App.jsx           &larr; 主畫面（客廳）
+    components/
+      StickerForm.jsx &larr; 表單元件（填寫區）
+      StickerGrid.jsx &larr; 貼圖展示（展示區）
+    utils/
+      gemini.js       &larr; AI 連線（和 AI 對話的電話）
+      imageProcess.js  &larr; 圖片處理（去背工具）
+  package.json        &larr; 專案設定（說明書）
+</pre>
+                <table>
+                    <tr><th>檔案</th><th>角色比喻</th><th>功能</th></tr>
+                    <tr><td><code>index.html</code></td><td>工廠大門</td><td>網站的入口頁面</td></tr>
+                    <tr><td><code>App.jsx</code></td><td>廠長辦公室</td><td>管理整個應用程式的主畫面</td></tr>
+                    <tr><td><code>gemini.js</code></td><td>和 AI 通話的電話</td><td>負責呼叫 Gemini API 生成圖片</td></tr>
+                    <tr><td><code>imageProcess.js</code></td><td>去背工具間</td><td>用 Canvas API 處理圖片去背</td></tr>
+                    <tr><td><code>package.json</code></td><td>產品說明書</td><td>記錄專案用了哪些工具和設定</td></tr>
+                </table>
+                <div class="screenshot-container">
+                    <img src="images/img64.png" alt="專案檔案結構" class="screenshot">
+                    <p class="screenshot-caption">在 GitHub 上瀏覽專案的檔案結構</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 技術架構認識 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>技術架構認識</h2>
+                <p>這個專案用到了以下四種主要技術，不需要全懂，知道各自扮演什麼角色就好：</p>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="concept-card">
+                        <h3>React</h3>
+                        <span class="tag-badge">前端框架</span>
+                        <p style="margin-top: 8px;">做介面的工具包。就像蓋房子的「預製組件」，把按鈕、表單、展示區都做成可重複使用的元件。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Gemini API</h3>
+                        <span class="tag-badge">Google AI</span>
+                        <p style="margin-top: 8px;">負責生成圖片。我們透過 API 把「描述文字」送給 Google AI，它就會回傳生成的貼圖圖片。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Canvas API</h3>
+                        <span class="tag-badge">瀏覽器畫布</span>
+                        <p style="margin-top: 8px;">負責去背處理。瀏覽器內建的畫布功能，可以像 Photoshop 一樣逐像素處理圖片。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>GitHub Pages</h3>
+                        <span class="tag-badge">免費網站空間</span>
+                        <p style="margin-top: 8px;">負責部署上線。把程式碼放在 GitHub 上，就自動變成一個公開網站，完全免費！</p>
+                    </div>
+                </div>
+                <div class="box info" style="margin-top: 15px;">
+                    <strong>小提醒：</strong>這些技術名詞不需要背起來，重點是感受「一個完整的 AI 專案長什麼樣子」。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 整理專案重點筆記 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>整理專案重點筆記</h2>
+                <p>用你習慣的方式（記事本、Markdown、手寫都行），整理以下三個重點：</p>
+<pre>
+## LINE 貼圖 AI 工具 - 專案筆記
+
+### 功能流程
+輸入 API Key &rarr; 選張數 &rarr; 描述角色 &rarr; AI 生成 &rarr; 自動去背 &rarr; 打包下載
+
+### 使用技術
+- 前端框架：React（做介面元件）
+- AI 服務：Gemini API（生成圖片）
+- 圖片處理：Canvas API（去背）
+- 部署平台：GitHub Pages（免費網站）
+
+### 重要檔案
+- index.html：網站入口
+- App.jsx：主畫面
+- gemini.js：AI 連線
+- imageProcess.js：圖片去背
+</pre>
+                <div class="box info">
+                    <strong>下一步：</strong>我們要把這份筆記變成卡片網頁的內容！接下來的小成品 16，就是把這些重點填入上一章做好的卡片模板中。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 小成品 15 完成確認 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>小成品 15 完成確認</h2>
+                <p>確認你已經完成以下項目：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>體驗工具操作</h3>
+                        <p>打開 LINE 貼圖 AI 工具，了解它的操作流程和每個步驟的作用。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>認識 GitHub 專案</h3>
+                        <p>瀏覽 GitHub 上的專案頁面，知道 GitHub 是「程式碼的雲端硬碟」。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>了解技術架構</h3>
+                        <p>知道 React、Gemini API、Canvas API、GitHub Pages 各自的角色。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>整理專案筆記</h3>
+                        <p>將功能流程、使用技術、重要檔案整理成一份筆記，準備填入卡片。</p>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>小成品 15 完成！</strong>你已經認識了一個真實的 AI 開源專案。接下來我們要把這些內容變成漂亮的卡片網頁！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 小成品 16 標題頁 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <h1>小成品 16</h1>
+                <p>製作 LINE 貼圖教學的卡片內容</p>
+                <span class="time-badge" style="margin-top: 20px;">10:30 - 11:00（30 分鐘）</span>
+                <p style="margin-top: 15px; color: #999;">用 AI 生成文字內容，用搜尋替換快速填入卡片模板</p>
+            </div>
+        </div>
+
+        <!-- Slide 12: 規劃 8 張卡片的內容架構 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>規劃 8 張卡片的內容架構</h2>
+                <p>我們的卡片網頁由 <strong>Hero（首區）+ 8 張卡片 + Footer（頁尾）</strong>組成：</p>
+                <table>
+                    <tr><th>區塊</th><th>內容主題</th><th>說明</th></tr>
+                    <tr><td><strong>Hero</strong></td><td>主標題 + 副標題</td><td>整個頁面的第一印象</td></tr>
+                    <tr><td>卡片 1</td><td>工具介紹</td><td>這是什麼工具？能幹嘛？</td></tr>
+                    <tr><td>卡片 2</td><td>核心功能</td><td>AI 生成 + 自動去背</td></tr>
+                    <tr><td>卡片 3</td><td>操作流程</td><td>6 個步驟怎麼走</td></tr>
+                    <tr><td>卡片 4</td><td>技術架構</td><td>React + Gemini + Canvas</td></tr>
+                    <tr><td>卡片 5</td><td>API Key 申請</td><td>怎麼取得免費的 API Key</td></tr>
+                    <tr><td>卡片 6</td><td>使用小技巧</td><td>描述角色的訣竅</td></tr>
+                    <tr><td>卡片 7</td><td>常見問題</td><td>遇到問題怎麼解決</td></tr>
+                    <tr><td>卡片 8</td><td>延伸應用</td><td>還能用 AI 做什麼</td></tr>
+                    <tr><td><strong>Footer</strong></td><td>作者 + 連結</td><td>GitHub 連結、版權資訊</td></tr>
+                </table>
+                <div class="box info">
+                    <strong>內容安排邏輯：</strong>從「是什麼」&rarr;「能做什麼」&rarr;「怎麼用」&rarr;「背後原理」，循序漸進讓讀者理解。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 用 AI 生成各卡片的文字 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>用 AI 生成各卡片的文字</h2>
+                <p>把以下 Prompt 丟給 AI（ChatGPT / Gemini / Claude），讓它幫你生成所有卡片內容：</p>
+<pre>
+請幫我生成一個介紹「LINE 貼圖 AI 製作工具」的網頁文字內容。
+我需要 10 個區塊，每個區塊包含：
+1. 區塊標題（10 字以內）
+2. 區塊內容（50-100 字的說明文字）
+
+10 個區塊分別是：
+- Hero 主標題 + 副標題
+- 卡片 1：工具介紹
+- 卡片 2：核心功能
+- 卡片 3：操作流程
+- 卡片 4：技術架構
+- 卡片 5：API Key 申請教學
+- 卡片 6：使用小技巧
+- 卡片 7：常見問題
+- 卡片 8：延伸應用
+- Footer：版權資訊
+
+風格要求：口語化、易懂、適合初學者閱讀。
+</pre>
+                <div class="screenshot-container">
+                    <img src="images/img65.png" alt="AI 生成文字內容" class="screenshot">
+                    <p class="screenshot-caption">AI 生成的卡片文字內容，可以直接複製使用</p>
+                </div>
+                <div class="box warning">
+                    <strong>提醒：</strong>AI 生成的內容不一定完美，記得檢查一下是否正確，再貼進去。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: VS Code 搜尋替換功能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>VS Code 搜尋替換功能</h2>
+                <p>這是 VS Code 最實用的功能之一，可以快速找到並修改模板中的佔位文字：</p>
+                <div class="two-column">
+                    <div>
+                        <h3>搜尋（Ctrl + F）</h3>
+                        <ul>
+                            <li>按 <code>Ctrl + F</code> 開啟搜尋列</li>
+                            <li>輸入要找的文字，例如 <code>【主標題】</code></li>
+                            <li>按 Enter 跳到下一個匹配位置</li>
+                            <li>按 Esc 關閉搜尋列</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>搜尋替換（Ctrl + H）</h3>
+                        <ul>
+                            <li>按 <code>Ctrl + H</code> 開啟搜尋替換列</li>
+                            <li>上方：輸入要找的文字（如 <code>【主標題】</code>）</li>
+                            <li>下方：輸入要替換成的文字</li>
+                            <li>點「全部替換」一次換完所有位置</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img66.png" alt="VS Code 搜尋替換" class="screenshot">
+                    <p class="screenshot-caption">VS Code 的搜尋替換功能，支援逐一替換或全部替換</p>
+                </div>
+                <div class="box success">
+                    <strong>快捷鍵小抄：</strong><code>Ctrl + F</code> = 搜尋 | <code>Ctrl + H</code> = 搜尋替換 | <code>Ctrl + Shift + H</code> = 全專案搜尋替換
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 修改 Hero Section -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>修改 Hero Section</h2>
+                <p>首先替換卡片模板中的 Hero 區塊內容：</p>
+                <div class="two-column">
+                    <div>
+                        <h3>替換主標題</h3>
+                        <p><strong>搜尋：</strong><code>【主標題】</code></p>
+                        <p><strong>替換為：</strong>LINE 貼圖 AI 製作完全攻略</p>
+                    </div>
+                    <div>
+                        <h3>替換副標題</h3>
+                        <p><strong>搜尋：</strong><code>【副標題】</code></p>
+                        <p><strong>替換為：</strong>用 AI 自動生成一整套 LINE 貼圖，免費、快速、超簡單</p>
+                    </div>
+                </div>
+                <p style="margin-top: 15px;">替換後的 HTML 程式碼看起來像這樣：</p>
+<pre>
+&lt;section class="hero"&gt;
+  &lt;h1&gt;LINE 貼圖 AI 製作完全攻略&lt;/h1&gt;
+  &lt;p&gt;用 AI 自動生成一整套 LINE 貼圖，免費、快速、超簡單&lt;/p&gt;
+  &lt;a href="#cards" class="btn"&gt;開始探索&lt;/a&gt;
+&lt;/section&gt;
+</pre>
+                <div class="box info">
+                    <strong>技巧：</strong>替換完成後，按 <code>Ctrl + S</code> 存檔，瀏覽器會自動重新載入（如果你有用 Live Server 的話）。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: 修改 Footer -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>修改 Footer</h2>
+                <p>最後別忘了修改頁面底部的 Footer 區塊：</p>
+                <h3>加入專案連結</h3>
+<pre>
+&lt;footer&gt;
+  &lt;p&gt;LINE 貼圖 AI 製作工具 &amp;copy; 2025&lt;/p&gt;
+  &lt;p&gt;
+    &lt;a href="https://github.com/your-repo" target="_blank"&gt;
+      GitHub 專案頁面
+    &lt;/a&gt;
+  &lt;/p&gt;
+&lt;/footer&gt;
+</pre>
+                <div class="box info">
+                    <strong><code>target="_blank"</code> 是什麼？</strong><br>
+                    這個屬性會讓連結「在新分頁打開」，而不是離開目前頁面。就像你在看書時夾一個書籤、另外翻開一本新書，而不是把正在看的書合起來。
+                </div>
+                <h3>常用的連結屬性</h3>
+                <table>
+                    <tr><th>屬性</th><th>效果</th><th>比喻</th></tr>
+                    <tr><td><code>target="_blank"</code></td><td>在新分頁開啟</td><td>開新視窗去看</td></tr>
+                    <tr><td><code>target="_self"</code></td><td>在目前頁面開啟（預設）</td><td>翻到那一頁</td></tr>
+                    <tr><td><code>rel="noopener"</code></td><td>安全性屬性</td><td>防止新頁面偷看你的資料</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 17: 存檔並預覽 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>存檔並預覽</h2>
+                <p>替換完所有內容後，存檔並檢查成果：</p>
+                <div style="margin-top: 10px;">
+                    <p><span class="step-number">1</span><strong>存檔</strong> &mdash; 按 <code>Ctrl + S</code> 儲存檔案</p>
+                    <p><span class="step-number">2</span><strong>預覽</strong> &mdash; 切換到瀏覽器，查看頁面是否正確顯示</p>
+                    <p><span class="step-number">3</span><strong>檢查</strong> &mdash; 確認所有【佔位符】都已經被替換成真實內容</p>
+                    <p><span class="step-number">4</span><strong>修正</strong> &mdash; 如果有遺漏，再用 <code>Ctrl + F</code> 搜尋「【」找出來</p>
+                </div>
+                <div class="box warning" style="margin-top: 10px;">
+                    <strong>小技巧：</strong>替換完後，搜尋「【」看看還有沒有遺漏的佔位符。如果搜不到，就表示全部替換完成了！
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img67.png" alt="替換內容後的預覽" class="screenshot">
+                    <p class="screenshot-caption">替換完成後的卡片網頁預覽畫面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 練習時間 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>練習時間</h2>
+                <span class="time-badge">15 分鐘實作</span>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>練習 A：替換所有預設文字</h3>
+                        <p>用搜尋替換功能，把模板中所有的 <code>【預設文字】</code> 替換成 AI 生成的真實內容。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>練習 B：調整不滿意的地方</h3>
+                        <p>AI 生成的文字不一定完美，試著手動修改不通順或不正確的內容。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>練習 C：在手機上預覽</h3>
+                        <p>用手機掃 QR Code 或輸入 Live Server 的網址，看看手機上的顯示效果。</p>
+                    </div>
+                </div>
+                <div class="screenshot-container" style="margin-top: 15px;">
+                    <img src="images/img68.png" alt="手機預覽" class="screenshot">
+                    <p class="screenshot-caption">在手機上預覽你的卡片網頁效果</p>
+                </div>
+                <div class="box success">
+                    <strong>完成目標：</strong>你的卡片網頁應該已經充滿了 LINE 貼圖工具的真實介紹內容，不再有任何【佔位符】。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: 小成品 16 完成確認 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>小成品 16 完成確認</h2>
+                <p>確認你已經完成以下項目：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>規劃卡片架構</h3>
+                        <p>確定了 Hero + 8 張卡片 + Footer 的內容主題安排。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>AI 生成文字</h3>
+                        <p>用 Prompt 讓 AI 生成了 10 個區塊的完整文字內容。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>搜尋替換填入</h3>
+                        <p>使用 Ctrl+H 搜尋替換功能，把佔位符全部替換成真實內容。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>預覽並修正</h3>
+                        <p>在瀏覽器和手機上預覽，確認顯示正確且沒有遺漏。</p>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>小成品 16 完成！</strong>你的卡片網頁現在已經有了完整的真實內容，看起來就像一個正式的教學網頁了！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: 本章回顧 + 下一章 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>本章回顧</h2>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="concept-card">
+                        <h3>真實 AI 專案</h3>
+                        <p>認識了 LINE 貼圖 AI 工具的完整架構，了解一個真實專案長什麼樣子。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>技術名詞</h3>
+                        <p>學會了 React、API、Canvas、GitHub Pages 這些技術各自扮演的角色。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>AI 生成文字</h3>
+                        <p>用 Prompt 讓 AI 幫你生成所有卡片內容，大幅節省寫作時間。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>搜尋替換</h3>
+                        <p>學會了 Ctrl+F 搜尋、Ctrl+H 搜尋替換，快速定位和修改內容。</p>
+                    </div>
+                </div>
+                <div class="flow-chart" style="margin-top: 20px;">
+                    <h3>下一章預告</h3>
+                    <p style="font-size: 20px; margin: 10px 0;">Part 10 - 圖片美化與互動效果</p>
+                    <p>學會加入圖片、調整樣式，並為卡片加上 hover 動畫和互動效果！</p>
+                    <a href="Part10_圖片美化與互動效果.html" class="nav-btn" style="display: inline-block; margin-top: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 10px 24px; font-size: 15px;">前往 Part 10 &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide=0;const slides=document.querySelectorAll('.slide');const totalSlides=slides.length;
+        function init(){createIndicators();showSlide(0);updateButtons();document.addEventListener('keydown',handleKeydown);}
+        function handleKeydown(e){if(e.key==='ArrowLeft')changeSlide(-1);if(e.key==='ArrowRight')changeSlide(1);if(e.key==='Home')goToSlide(0);if(e.key==='End')goToSlide(totalSlides-1);}
+        function createIndicators(){const c=document.getElementById('indicatorContainer');c.innerHTML='';slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot';d.onclick=()=>goToSlide(i);c.appendChild(d);});}
+        function showSlide(i){if(i<0)i=0;if(i>=totalSlides)i=totalSlides-1;slides.forEach(s=>s.classList.remove('active'));slides[i].classList.add('active');currentSlide=i;document.querySelectorAll('.dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));updateButtons();document.getElementById('pageIndicator').textContent=`${i+1} / ${totalSlides}`;}
+        function changeSlide(d){showSlide(currentSlide+d);}function goToSlide(i){showSlide(i);}
+        function updateButtons(){document.getElementById('prevBtn').disabled=currentSlide===0;document.getElementById('nextBtn').disabled=currentSlide===totalSlides-1;}
+        function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen();}
+        init();
+    </script>
+</body>
+</html>

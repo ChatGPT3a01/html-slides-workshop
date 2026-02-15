@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 13 - 上線測試與課程總結</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.15); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 20px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 12px; align-items: center; }
+        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .nav-arrow:hover { background: rgba(255,255,255,0.5); transform: translateY(-50%) scale(1.1); }
+        .prev-arrow { left: 30px; } .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 40px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255,255,255,0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 30px 40px; max-width: 1400px; width: 95%; max-height: 88vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 16px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 16px; border-bottom: 3px solid #667eea; padding-bottom: 8px; }
+        h3 { color: #667eea; font-size: 19px; margin: 14px 0 8px 0; }
+        p, li { font-size: 15px; line-height: 1.65; color: #444; margin-bottom: 6px; }
+        ul, ol { margin-left: 22px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #282c34; color: #abb2bf; padding: 12px; border-radius: 10px; margin: 10px 0; font-size: 12px; font-family: 'Consolas', monospace; overflow-x: auto; line-height: 1.5; }
+        .box { padding: 10px 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid; font-size: 14px; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .concept-card:hover { transform: translateY(-3px); border-color: #667eea; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin: 2px; }
+        .time-badge { display: inline-block; background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+        .screenshot { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin: 12px 0; border: 2px solid #e0e0e0; }
+        .screenshot-container { text-align: center; margin: 12px 0; }
+        .screenshot-caption { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 8px 15px; background: rgba(0,0,0,0.3); border-radius: 25px; backdrop-filter: blur(5px); flex-wrap: wrap; max-width: 90%; justify-content: center; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.4); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .cover-subtitle { font-size: 22px; color: #764ba2; margin-bottom: 20px; }
+        .cover-info { font-size: 15px; color: #888; margin-top: 25px; }
+        .section-divider { text-align: center; padding: 25px; }
+        .section-divider h1 { font-size: 42px; }
+        .section-divider p { font-size: 18px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .flow-chart { background: #f8f9ff; padding: 15px; border-radius: 10px; text-align: center; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 13 - 上線測試與課程總結</div>
+        <div class="nav-buttons">
+            <a href="Day2.html" class="nav-btn">首頁</a>
+            <a href="Part12_AI客服系統部署.html" class="nav-btn">&larr; 上一章</a>
+            <a href="Part14_課程認證測驗.html" class="nav-btn">課程認證 &rarr;</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 23</span>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&larr;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&rarr;</button>
+
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 13：上線測試與課程總結</h1>
+                <p class="cover-subtitle">最後的品質檢查與兩天的精彩回顧</p>
+                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">README</span>
+                    <span class="tag-badge">Markdown</span>
+                    <span class="tag-badge">手機測試</span>
+                    <span class="tag-badge">成果展示</span>
+                    <span class="tag-badge">課程回顧</span>
+                </div>
+                <p class="cover-info">小成品 23-24 | Day 2 下午</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: 目錄 -->
+        <div class="slide">
+            <div class="content-card">
+                <h1>本章目錄</h1>
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 30px;">
+                    <div class="concept-card" style="padding: 25px;">
+                        <h3 style="font-size: 22px; margin-bottom: 12px;">小成品 23</h3>
+                        <p style="font-size: 17px; font-weight: 600; color: #764ba2;">README 與上線測試</p>
+                        <p style="margin-top: 10px;">撰寫專案說明文件、手機測試、問題修復</p>
+                        <span class="time-badge" style="margin-top: 10px;">15:30 - 16:00</span>
+                    </div>
+                    <div class="concept-card" style="padding: 25px;">
+                        <h3 style="font-size: 22px; margin-bottom: 12px;">小成品 24</h3>
+                        <p style="font-size: 17px; font-weight: 600; color: #764ba2;">課程總結與成果展示</p>
+                        <p style="margin-top: 10px;">兩天成果回顧、技能盤點、後續學習建議</p>
+                        <span class="time-badge" style="margin-top: 10px;">16:00 - 16:30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 小成品 23 標題 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <span class="time-badge">15:30 - 16:00</span>
+                <h1>小成品 23</h1>
+                <p>README 與上線測試</p>
+                <p style="margin-top: 15px; color: #764ba2; font-weight: 600;">為你的專案寫一份漂亮的說明書，並做最後的品質檢查</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: README 是什麼？ -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>README 是什麼？</h2>
+                <div class="box info">
+                    <strong>README = 專案的使用說明書</strong>，GitHub 會自動在專案頁面顯示 README.md 的內容。
+                </div>
+                <h3>為什麼 README 很重要？</h3>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">🏠</div>
+                        <h3>專案門面</h3>
+                        <p>別人進入你的 Repository 第一眼看到的就是 README</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">📝</div>
+                        <h3>作品說明</h3>
+                        <p>告訴別人這個專案是什麼、怎麼使用、有哪些功能</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">🤝</div>
+                        <h3>社群禮儀</h3>
+                        <p>開源社群中，撰寫 README 是基本禮貌與專業表現</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Markdown 語法速成 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Markdown 語法速成</h2>
+                <p>README.md 使用 <strong>Markdown</strong> 語法撰寫，只需要學 4 個語法就夠了！</p>
+                <table>
+                    <tr>
+                        <th>語法</th>
+                        <th>寫法</th>
+                        <th>效果</th>
+                    </tr>
+                    <tr>
+                        <td>標題</td>
+                        <td><code># 大標題</code>、<code>## 中標題</code></td>
+                        <td>不同大小的標題文字</td>
+                    </tr>
+                    <tr>
+                        <td>列表</td>
+                        <td><code>- 項目一</code></td>
+                        <td>圓點列表項目</td>
+                    </tr>
+                    <tr>
+                        <td>粗體</td>
+                        <td><code>**粗體文字**</code></td>
+                        <td><strong>粗體文字</strong></td>
+                    </tr>
+                    <tr>
+                        <td>連結</td>
+                        <td><code>[顯示文字](網址)</code></td>
+                        <td>可點擊的超連結</td>
+                    </tr>
+                </table>
+                <div class="box info">
+                    <strong>只需要這 4 個語法就能寫出漂亮的 README！</strong>不需要背更多，用到再查就好。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: README 模板 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>README 模板</h2>
+                <p>直接複製這個模板，修改成你的內容即可：</p>
+                <pre>
+# 我的卡片教學網頁
+
+這是我在「AI 協作簡報實戰工作坊」中製作的作品。
+
+## 線上觀看
+👉 [點此觀看網頁](https://你的帳號.github.io/你的repo名稱/)
+
+## 內容大綱
+- 自我介紹卡片
+- 技能展示區塊
+- 作品集展示
+- 聯絡資訊
+
+## 網頁特色
+- 響應式設計（手機也能看）
+- 滾動動畫效果
+- 漸層背景配色
+
+## 製作工具
+- HTML / CSS / JavaScript
+- AI 輔助生成（ChatGPT / Gemini）
+- GitHub Pages 部署
+
+## 作者
+**你的名字** - AI 協作簡報實戰工作坊學員
+                </pre>
+                <div class="screenshot-container">
+                    <img src="images/img00-1.jpg" class="screenshot" alt="README 範例畫面">
+                    <p class="screenshot-caption">一個漂亮的 README 能讓你的專案看起來更專業</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 在 GitHub 上建立 README -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>在 GitHub 上建立 README</h2>
+                <h3>操作步驟</h3>
+                <ol>
+                    <li>進入你的 Repository 頁面</li>
+                    <li>點擊 <strong>Add a README</strong>（如果還沒有的話）</li>
+                    <li>或者點擊現有 <code>README.md</code> 檔案</li>
+                    <li>點擊右上角的 <strong>鉛筆圖示</strong>（編輯按鈕）</li>
+                    <li>貼上你的 README 內容</li>
+                    <li>點擊 <strong>Preview</strong> 預覽效果</li>
+                    <li>滾到最下方，點擊 <strong>Commit changes</strong></li>
+                </ol>
+                <div class="screenshot-container">
+                    <img src="images/img100.jpg" class="screenshot" alt="GitHub 編輯 README 畫面">
+                    <p class="screenshot-caption">在 GitHub 上直接編輯 README.md 的 Markdown 原始碼</p>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img101.jpg" class="screenshot" alt="README 預覽效果">
+                    <p class="screenshot-caption">切換到 Preview 標籤查看格式化後的 README 效果</p>
+                </div>
+                <div class="box info">
+                    <strong>小提示：</strong>可以隨時回來修改 README，不用一次寫到完美！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 上線後測試（手機測試） -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>上線後測試（手機測試）</h2>
+                <h3>測試方法</h3>
+                <ol>
+                    <li>用 <strong>LINE 傳網址給自己</strong>（最方便的方式）</li>
+                    <li>在手機上點開網址</li>
+                    <li>逐一檢查以下項目：</li>
+                </ol>
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="concept-card">
+                        <h3>視覺檢查</h3>
+                        <ul>
+                            <li>卡片是否正常顯示？</li>
+                            <li>文字是否清楚可讀？</li>
+                            <li>圖片是否正確載入？</li>
+                            <li>配色是否協調？</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>功能檢查</h3>
+                        <ul>
+                            <li>動畫效果是否正常？</li>
+                            <li>回到頂部按鈕是否可用？</li>
+                            <li>連結是否能正確跳轉？</li>
+                            <li>版面是否跑版？</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img102.png" class="screenshot" alt="手機測試畫面">
+                    <p class="screenshot-caption">用手機測試你的網頁，確保在行動裝置上也能正常瀏覽</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 常見問題修復 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>常見問題修復</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>方法 A：直接在 GitHub 上編輯</h3>
+                        <p><strong>適合：小修改</strong>（改錯字、調顏色）</p>
+                        <ol>
+                            <li>進入 Repository</li>
+                            <li>點擊要修改的檔案</li>
+                            <li>點鉛筆圖示編輯</li>
+                            <li>修改後 Commit changes</li>
+                            <li>等 1-2 分鐘生效</li>
+                        </ol>
+                        <div class="box info">
+                            <strong>優點：</strong>快速、不需要工具
+                        </div>
+                    </div>
+                    <div>
+                        <h3>方法 B：VS Code 修改後重新上傳</h3>
+                        <p><strong>適合：大修改</strong>（改版面、加功能）</p>
+                        <ol>
+                            <li>在 VS Code 中修改檔案</li>
+                            <li>用 Live Server 本地預覽</li>
+                            <li>確認沒問題後上傳到 GitHub</li>
+                            <li>等 1-2 分鐘生效</li>
+                        </ol>
+                        <div class="box info">
+                            <strong>優點：</strong>可以預覽、修改更方便
+                        </div>
+                    </div>
+                </div>
+                <div class="box warning">
+                    <strong>注意：</strong>GitHub Pages 更新需要 1-2 分鐘，不是即時生效的！如果看不到變化，請稍等一下再重新整理頁面。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 記錄你的作品網址 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>記錄你的作品網址</h2>
+                <p>課程結束後，請把你所有的作品網址記錄下來：</p>
+                <table>
+                    <tr>
+                        <th>編號</th>
+                        <th>作品名稱</th>
+                        <th>平台</th>
+                        <th>網址</th>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>卡片教學網頁</td>
+                        <td>GitHub Pages</td>
+                        <td><code>https://你的帳號.github.io/你的repo/</code></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>LINE 貼圖工具</td>
+                        <td>Fork + GitHub Pages</td>
+                        <td><code>https://你的帳號.github.io/line-sticker/</code></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>AI 客服系統</td>
+                        <td>Netlify</td>
+                        <td><code>https://你的名稱.netlify.app/</code></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>GitHub 個人頁面</td>
+                        <td>GitHub</td>
+                        <td><code>https://github.com/你的帳號</code></td>
+                    </tr>
+                </table>
+                <div class="box info">
+                    <strong>建議：</strong>把這些網址存在手機的記事本裡，方便隨時分享給別人！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 社群分享文案範本 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>社群分享文案範本</h2>
+                <p>完成作品後，可以用以下模板分享到社群媒體：</p>
+                <pre>
+🎉 我完成了兩天的 AI 協作簡報實戰工作坊！
+
+在這兩天裡，我學會了：
+✅ 用 HTML/CSS 做網頁
+✅ 用 AI 輔助生成程式碼
+✅ 把網頁部署到 GitHub Pages
+✅ 建立 AI 客服系統
+
+🔗 我的作品：
+- 卡片網頁：（貼上你的網址）
+- AI 客服：（貼上你的網址）
+
+感謝阿亮老師的教學！
+#AI協作 #HTML #網頁設計 #GitHubPages
+                </pre>
+                <div class="box info">
+                    <strong>大方分享你的成果！</strong>每一個作品都是你努力的證明，不要害羞，讓更多人看到你的成長！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 小成品 23 完成 -->
+        <div class="slide">
+            <div class="content-card" style="text-align: center;">
+                <h1>小成品 23 完成！</h1>
+                <div class="box success" style="font-size: 16px; text-align: left; max-width: 600px; margin: 20px auto;">
+                    <strong>你已經完成：</strong>
+                    <ul style="margin-top: 10px;">
+                        <li>撰寫專案 README.md</li>
+                        <li>手機上線測試</li>
+                        <li>學會兩種問題修復方式</li>
+                        <li>記錄所有作品網址</li>
+                        <li>準備好社群分享文案</li>
+                    </ul>
+                </div>
+                <p style="font-size: 18px; color: #764ba2; font-weight: 600; margin-top: 15px;">你的專案現在有了完整的說明書和品質保證！</p>
+            </div>
+        </div>
+
+        <!-- Slide 13: 小成品 24 標題 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <span class="time-badge">16:00 - 16:30</span>
+                <h1>小成品 24</h1>
+                <p>課程總結與成果展示</p>
+                <p style="margin-top: 15px; color: #764ba2; font-weight: 600;">回顧兩天的精彩旅程，展示你的全部成果</p>
+            </div>
+        </div>
+
+        <!-- Slide 14: Day 1 成果盤點 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Day 1 成果盤點</h2>
+                <h3>大成品</h3>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
+                        <strong>HTML 簡報模板</strong>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🤖</div>
+                        <strong>AI Prompt 組</strong>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📚</div>
+                        <strong>NotebookLM 素材庫</strong>
+                    </div>
+                </div>
+                <h3 style="margin-top: 20px;">小成品 1-12</h3>
+                <table>
+                    <tr><th>編號</th><th>小成品名稱</th><th>學到的技能</th></tr>
+                    <tr><td>1-3</td><td>HTML 基礎練習</td><td>標籤、元素、屬性</td></tr>
+                    <tr><td>4-6</td><td>簡報框架與手繪</td><td>Reveal.js、AI 圖片辨識</td></tr>
+                    <tr><td>7-9</td><td>資料收集與整理</td><td>NotebookLM、素材管理</td></tr>
+                    <tr><td>10-12</td><td>Prompt 設計與內容生成</td><td>AI Prompt、HTML 生成</td></tr>
+                </table>
+                <div class="screenshot-container">
+                    <img src="images/img00-4.jpg" class="screenshot" alt="Day 1 成果展示">
+                    <p class="screenshot-caption">Day 1 的豐碩成果</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Day 2 成果盤點 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Day 2 成果盤點</h2>
+                <h3>大成品</h3>
+                <div class="concept-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🃏</div>
+                        <strong>卡片網頁</strong>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🌐</div>
+                        <strong>GitHub Pages</strong>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🍴</div>
+                        <strong>Fork 工具</strong>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🚀</div>
+                        <strong>Netlify 部署</strong>
+                    </div>
+                </div>
+                <h3 style="margin-top: 20px;">小成品 13-24</h3>
+                <table>
+                    <tr><th>編號</th><th>小成品名稱</th><th>學到的技能</th></tr>
+                    <tr><td>13-15</td><td>卡片網頁製作</td><td>CSS 動畫、RWD、VS Code</td></tr>
+                    <tr><td>16-18</td><td>GitHub 帳號與部署</td><td>Repository、上傳、Pages</td></tr>
+                    <tr><td>19-21</td><td>Fork 與進階部署</td><td>Fork、Netlify、環境變數</td></tr>
+                    <tr><td>22-24</td><td>AI 客服與上線</td><td>Supabase、測試、README</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 16: 你學會的技術技能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>你學會的技術技能</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>HTML 基礎</h3>
+                        <ul>
+                            <li>HTML 標籤與元素結構</li>
+                            <li>屬性設定（class、id、src）</li>
+                            <li>語意化標籤使用</li>
+                            <li>表單與互動元素</li>
+                        </ul>
+                        <h3>CSS 樣式</h3>
+                        <ul>
+                            <li>顏色與漸層背景</li>
+                            <li>圓角與陰影效果</li>
+                            <li>CSS 動畫與過渡</li>
+                            <li>RWD 響應式設計</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>JavaScript</h3>
+                        <ul>
+                            <li>Intersection Observer API</li>
+                            <li>滾動動畫觸發</li>
+                            <li>DOM 操作基礎</li>
+                        </ul>
+                        <h3>開發工具</h3>
+                        <ul>
+                            <li>VS Code 編輯器操作</li>
+                            <li>Live Server 即時預覽</li>
+                            <li>瀏覽器開發者工具</li>
+                            <li>檔案管理與組織</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: 你學會的 GitHub 技能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>你學會的 GitHub 技能</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">👤</div>
+                        <strong>建立帳號</strong>
+                        <p>註冊 GitHub 帳號並設定個人資料</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
+                        <strong>Repository</strong>
+                        <p>建立儲存庫並管理專案檔案</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📤</div>
+                        <strong>上傳檔案</strong>
+                        <p>將本地檔案上傳到 GitHub</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🌍</div>
+                        <strong>GitHub Pages</strong>
+                        <p>一鍵部署靜態網頁</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🍴</div>
+                        <strong>Fork 專案</strong>
+                        <p>複製別人的專案並客製化</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🚀</div>
+                        <strong>Netlify 部署</strong>
+                        <p>支援環境變數的進階部署</p>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>額外技能：</strong>Supabase 資料庫設定、環境變數管理、自訂網域概念
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 你學會的 AI 協作技能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>你學會的 AI 協作技能</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                    <div class="concept-card">
+                        <h3>撰寫 Prompt</h3>
+                        <p>掌握角色設定、任務描述、格式要求三要素，寫出高品質的 AI 指令</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>AI 生成 HTML/CSS</h3>
+                        <p>讓 AI 幫你寫出完整的網頁程式碼，包含樣式和互動效果</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>AI 生成文字內容</h3>
+                        <p>用 AI 產出標題、段落、清單等各種文案內容</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>NotebookLM 整理資料</h3>
+                        <p>用 Google NotebookLM 彙整學習素材，建立個人知識庫</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>多輪對話迭代</h3>
+                        <p>透過持續對話修正 AI 輸出，逐步達到理想效果</p>
+                    </div>
+                </div>
+                <div class="box info" style="margin-top: 15px;">
+                    <strong>關鍵觀念：</strong>AI 是你的協作夥伴，不是取代你的工具。你的創意和判斷力才是最重要的！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: 結語 -->
+        <div class="slide">
+            <div class="content-card" style="text-align: center;">
+                <h1>兩天課程的結語</h1>
+                <div class="box success" style="font-size: 18px; max-width: 700px; margin: 20px auto; text-align: center;">
+                    <strong>你做了 24 個小成品！</strong><br>
+                    從零開始，完成了從想法到上線的完整流程！
+                </div>
+                <div style="max-width: 700px; margin: 0 auto; text-align: left;">
+                    <div class="flow-chart">
+                        <p style="font-size: 16px; font-weight: 600;">
+                            手繪草稿 → AI 辨識 → 生成程式碼 → 本地預覽 → GitHub 上傳 → 全世界都能看到
+                        </p>
+                    </div>
+                    <h3 style="text-align: center; margin-top: 20px;">你在這兩天學會了：</h3>
+                    <ul style="font-size: 16px; margin-top: 10px;">
+                        <li><strong>HTML/CSS/JavaScript</strong> 網頁開發基礎</li>
+                        <li><strong>AI 協作</strong>是 2026 年最重要的技能之一</li>
+                        <li><strong>GitHub</strong> 版本控制與網頁部署</li>
+                        <li><strong>完整的專案流程</strong>，從零到上線</li>
+                    </ul>
+                </div>
+                <p style="font-size: 22px; color: #764ba2; font-weight: 800; margin-top: 25px;">
+                    「你比兩天前的自己強大了太多太多」
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 22: 小成品 24 完成 -->
+        <div class="slide">
+            <div class="content-card">
+                <h1>小成品 24 完成！全部完成！</h1>
+                <div class="two-column" style="margin-top: 20px;">
+                    <div>
+                        <h3>Day 1 大成品 Checklist</h3>
+                        <div class="box success">
+                            <ul>
+                                <li>&#x2705; HTML 簡報模板（Reveal.js）</li>
+                                <li>&#x2705; AI Prompt 組（8 個模板）</li>
+                                <li>&#x2705; NotebookLM 素材庫</li>
+                                <li>&#x2705; 完整的簡報內容</li>
+                                <li>&#x2705; 進階技巧與 Skill 建立</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Day 2 大成品 Checklist</h3>
+                        <div class="box success">
+                            <ul>
+                                <li>&#x2705; 卡片式教學網頁</li>
+                                <li>&#x2705; GitHub Pages 部署上線</li>
+                                <li>&#x2705; Fork 工具網頁（LINE 貼圖）</li>
+                                <li>&#x2705; Netlify 部署 AI 客服</li>
+                                <li>&#x2705; README 與上線測試</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="box info" style="text-align: center; font-size: 16px; margin-top: 15px;">
+                    <strong>恭喜你！24 個小成品全部完成！</strong>你現在擁有了從構思到上線的完整能力。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 23: 感謝頁 -->
+        <div class="slide">
+            <div class="content-card cover-content">
+                <h1>恭喜你完成了兩天的課程！</h1>
+                <p class="cover-subtitle">你現在是一個會用 AI 做網頁的人了！</p>
+                <div style="margin-top: 25px;">
+                    <p style="font-size: 20px; font-weight: 700; color: #333; margin-bottom: 10px;">曾慶良（阿亮老師）</p>
+                    <p style="font-size: 15px; color: #666; margin-bottom: 20px;">AI 協作簡報實戰工作坊</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+                        <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="tag-badge" style="text-decoration: none; font-size: 14px; padding: 8px 18px;">Facebook</a>
+                        <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="tag-badge" style="text-decoration: none; font-size: 14px; padding: 8px 18px;">YouTube</a>
+                        <a href="https://www.facebook.com/groups/2754139931432955?locale=zh_TW" target="_blank" class="tag-badge" style="text-decoration: none; font-size: 14px; padding: 8px 18px;">3A 社團</a>
+                    </div>
+                </div>
+                <p style="font-size: 13px; color: #aaa; margin-top: 20px;">&copy; AI 協作簡報實戰工作坊 | 僅供課程學員使用</p>
+                <div style="margin-top: 20px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <a href="Part14_課程認證測驗.html" class="nav-btn" style="background: linear-gradient(90deg, #ffd700 0%, #ff6b35 100%); border: none; padding: 12px 30px; font-size: 16px; color: #333; text-decoration: none; font-weight: 700;">前往課程認證 &rarr;</a>
+                    <a href="Day2.html" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 12px 30px; font-size: 16px; color: white; text-decoration: none;">回到首頁</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide=0;const slides=document.querySelectorAll('.slide');const totalSlides=slides.length;
+        function init(){createIndicators();showSlide(0);updateButtons();document.addEventListener('keydown',handleKeydown);}
+        function handleKeydown(e){if(e.key==='ArrowLeft')changeSlide(-1);if(e.key==='ArrowRight')changeSlide(1);if(e.key==='Home')goToSlide(0);if(e.key==='End')goToSlide(totalSlides-1);}
+        function createIndicators(){const c=document.getElementById('indicatorContainer');c.innerHTML='';slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot';d.onclick=()=>goToSlide(i);c.appendChild(d);});}
+        function showSlide(i){if(i<0)i=0;if(i>=totalSlides)i=totalSlides-1;slides.forEach(s=>s.classList.remove('active'));slides[i].classList.add('active');currentSlide=i;document.querySelectorAll('.dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));updateButtons();document.getElementById('pageIndicator').textContent=`${i+1} / ${totalSlides}`;}
+        function changeSlide(d){showSlide(currentSlide+d);}function goToSlide(i){showSlide(i);}
+        function updateButtons(){document.getElementById('prevBtn').disabled=currentSlide===0;document.getElementById('nextBtn').disabled=currentSlide===totalSlides-1;}
+        function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen();}
+        init();
+    </script>
+</body>
+</html>

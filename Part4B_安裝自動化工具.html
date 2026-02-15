@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 4B - 安裝自動化工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 18px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 10px; }
+        .nav-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.3s ease; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .prev-arrow { left: 20px; } .next-arrow { right: 20px; }
+        .nav-arrow:disabled { opacity: 0.3; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 30px 80px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255, 255, 255, 0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); padding: 35px 45px; max-width: 1400px; width: 100%; max-height: 85vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 15px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 15px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        h3 { color: #667eea; font-size: 18px; margin: 15px 0 10px 0; }
+        p, li { font-size: 15px; line-height: 1.7; color: #444; margin-bottom: 8px; }
+        ul, ol { margin-left: 25px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 18px; border-radius: 10px; margin: 12px 0; font-size: 14px; overflow-x: auto; font-family: 'Consolas', 'Courier New', monospace; line-height: 1.5; }
+        .box { padding: 15px 20px; border-radius: 10px; margin: 15px 0; border-left: 4px solid; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .error { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; margin: 2px; }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; font-weight: 700; font-size: 14px; margin-right: 10px; flex-shrink: 0; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 6px 12px; background: rgba(0,0,0,0.3); border-radius: 20px; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.3); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 42px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cover-subtitle { font-size: 20px; color: #764ba2; margin-bottom: 15px; }
+        .cover-info { font-size: 14px; color: #888; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .step-item { display: flex; align-items: flex-start; margin-bottom: 15px; }
+        .step-content { flex: 1; }
+        .architecture-box { background: #f8f9ff; border: 2px solid #e8ecff; border-radius: 15px; padding: 20px; margin: 15px 0; }
+        .arch-layer { background: white; border: 1px solid #ddd; padding: 12px; margin: 8px 0; border-radius: 8px; text-align: center; }
+        .arch-layer.highlight { background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%); border-color: #667eea; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 4B - 安裝自動化工具</div>
+        <div class="nav-buttons">
+            <a href="Part4_資料收集與NotebookLM.html" class="nav-btn">← Part 4 總覽</a>
+            <a href="Part4A_NotebookLM基礎操作.html" class="nav-btn">← 上一節</a>
+            <a href="Part4C_Web介面使用教學.html" class="nav-btn">下一節 4C →</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 12</span>
+        </div>
+    </div>
+
+    <div class="slide-container">
+        <!-- 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 4B：安裝自動化工具</h1>
+                <p class="cover-subtitle">從手動操作邁向程式化控制</p>
+                <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">notebooklm-py</span>
+                    <span class="tag-badge">Playwright</span>
+                    <span class="tag-badge">Flask</span>
+                    <span class="tag-badge">自動化</span>
+                </div>
+                <p class="cover-info">曾慶良(阿亮老師) | AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+        <!-- 為什麼需要自動化 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>為什麼需要自動化？</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>手動操作的限制</h3>
+                        <ul>
+                            <li>每次都要開網頁、登入、點擊</li>
+                            <li>批次處理很麻煩</li>
+                            <li>無法整合到其他流程</li>
+                            <li>無法遠端控制</li>
+                        </ul>
+                        <h3>自動化的優勢</h3>
+                        <ul>
+                            <li>一鍵執行多項操作</li>
+                            <li>可以批次處理</li>
+                            <li>可整合到工作流程</li>
+                            <li>支援遠端/排程執行</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>效率比較</h3>
+                        <table>
+                            <tr><th>任務</th><th>手動</th><th>自動化</th></tr>
+                            <tr><td>生成 Podcast</td><td>5 分鐘操作</td><td>1 行指令</td></tr>
+                            <tr><td>批次匯入 10 個 URL</td><td>10 分鐘</td><td>30 秒</td></tr>
+                            <tr><td>每日報告生成</td><td>每天手動</td><td>自動排程</td></tr>
+                        </table>
+                        <div class="box success">
+                            <strong>本節目標：</strong>安裝好所有工具，為自動化做準備！
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術架構 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>自動化技術架構</h2>
+                <div class="architecture-box">
+                    <div class="arch-layer highlight">
+                        <strong>Flask Web GUI</strong><br>
+                        <span style="font-size: 13px; color: #666;">網頁介面，輸入自然語言指令</span>
+                    </div>
+                    <div style="text-align: center; color: #667eea;">↓</div>
+                    <div class="arch-layer">
+                        <strong>NLP Parser 自然語言解析</strong><br>
+                        <span style="font-size: 13px; color: #666;">關鍵字匹配 / Gemini / OpenAI</span>
+                    </div>
+                    <div style="text-align: center; color: #667eea;">↓</div>
+                    <div class="arch-layer highlight">
+                        <strong>notebooklm-py CLI</strong><br>
+                        <span style="font-size: 13px; color: #666;">命令列工具，轉換為 NotebookLM 操作</span>
+                    </div>
+                    <div style="text-align: center; color: #667eea;">↓</div>
+                    <div class="arch-layer">
+                        <strong>Playwright 瀏覽器自動化</strong><br>
+                        <span style="font-size: 13px; color: #666;">自動控制 Chromium 瀏覽器</span>
+                    </div>
+                    <div style="text-align: center; color: #667eea;">↓</div>
+                    <div class="arch-layer">
+                        <strong>NotebookLM 網頁</strong><br>
+                        <span style="font-size: 13px; color: #666;">notebooklm.google.com</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系統需求 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>系統需求</h2>
+                <div class="two-column">
+                    <div>
+                        <h3>必要條件</h3>
+                        <table>
+                            <tr><th>項目</th><th>需求</th></tr>
+                            <tr><td>作業系統</td><td>Windows 10/11、macOS、Linux</td></tr>
+                            <tr><td>Python</td><td>3.9 以上版本</td></tr>
+                            <tr><td>瀏覽器</td><td>Chromium（自動安裝）</td></tr>
+                            <tr><td>網路</td><td>需要連網</td></tr>
+                            <tr><td>Google 帳號</td><td>需要登入 NotebookLM</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>建議配置</h3>
+                        <ul>
+                            <li><strong>RAM：</strong>8GB 以上（瀏覽器自動化需要記憶體）</li>
+                            <li><strong>硬碟空間：</strong>500MB 以上</li>
+                            <li><strong>CPU：</strong>雙核心以上</li>
+                        </ul>
+                        <div class="box info">
+                            <strong>確認 Python 版本：</strong>
+                            <pre style="margin: 8px 0; padding: 10px;">python --version</pre>
+                            應顯示 Python 3.9 以上
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步驟一：下載專案 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>步驟一：下載 Web GUI 專案</h2>
+                <p>首先從 GitHub 下載自動化專案。</p>
+
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>用 Git 下載（推薦）</h3>
+                        <pre>git clone https://github.com/ChatGPT3a01/notebooklm-automation.git
+cd notebooklm-automation</pre>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>或直接下載 ZIP</h3>
+                        <p>前往 <code>https://github.com/ChatGPT3a01/notebooklm-automation</code></p>
+                        <p>點擊「Code」→「Download ZIP」，然後解壓縮。</p>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>專案網址：</strong><br>
+                    <a href="https://github.com/ChatGPT3a01/notebooklm-automation" target="_blank" style="color: #155724;">
+                        https://github.com/ChatGPT3a01/notebooklm-automation
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步驟二：安裝依賴套件 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>步驟二：安裝依賴套件</h2>
+                <p>進入專案目錄，安裝所需的 Python 套件。</p>
+
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>進入專案目錄</h3>
+                        <pre>cd notebooklm-automation</pre>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>安裝所有依賴</h3>
+                        <pre>pip install -r requirements.txt</pre>
+                        <p>這會安裝 Flask、notebooklm-py 等所有必要套件。</p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h3>安裝 Chromium 瀏覽器</h3>
+                        <pre>playwright install chromium</pre>
+                        <p>這會下載 Chromium 瀏覽器，供自動化使用。</p>
+                    </div>
+                </div>
+
+                <div class="box warning">
+                    <strong>注意：</strong>Chromium 下載約 200MB，請確保網路穩定。
+                </div>
+            </div>
+        </div>
+
+        <!-- 步驟三：Google 帳號登入 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>步驟三：Google 帳號登入</h2>
+                <p>notebooklm-py 需要你的 Google 帳號授權才能操作 NotebookLM。</p>
+
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>執行登入指令</h3>
+                        <pre>notebooklm login</pre>
+                        <p>執行後會自動開啟 Chromium 瀏覽器。</p>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>在瀏覽器中登入 Google</h3>
+                        <ul>
+                            <li>輸入你的 Google 帳號和密碼</li>
+                            <li>完成二步驟驗證（如果有設定）</li>
+                            <li>確認你已經進入 NotebookLM 頁面</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h3>回到終端機按 Enter</h3>
+                        <p>登入成功後，在終端機按 Enter 確認完成。</p>
+                    </div>
+                </div>
+
+                <div class="box info">
+                    <strong>登入狀態儲存位置：</strong><code>~/.notebooklm/storage_state.json</code><br>
+                    此檔案包含你的登入 Cookie，請勿分享給他人。
+                </div>
+            </div>
+        </div>
+
+        <!-- 驗證安裝 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>驗證安裝是否成功</h2>
+                <p>安裝完成後，用以下指令確認一切正常。</p>
+
+                <div class="two-column">
+                    <div>
+                        <h3>檢查版本</h3>
+                        <pre>notebooklm --version</pre>
+                        <p>應顯示版本號，例如 <code>0.3.0</code></p>
+
+                        <h3>檢查登入狀態</h3>
+                        <pre>notebooklm auth check</pre>
+                        <p>應顯示「已登入」或類似訊息</p>
+
+                        <h3>列出筆記本</h3>
+                        <pre>notebooklm list</pre>
+                        <p>應列出你 NotebookLM 中的筆記本</p>
+                    </div>
+                    <div>
+                        <h3>常見問題</h3>
+                        <div class="box error">
+                            <strong>錯誤：command not found</strong><br>
+                            解決：確認 Python Scripts 路徑在 PATH 中
+                        </div>
+                        <div class="box error">
+                            <strong>錯誤：登入失效</strong><br>
+                            解決：重新執行 <code>notebooklm login</code>
+                        </div>
+                        <div class="box error">
+                            <strong>錯誤：Playwright 找不到</strong><br>
+                            解決：執行 <code>playwright install chromium</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 常用 CLI 指令 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>notebooklm-py 常用指令</h2>
+                <table>
+                    <tr><th>指令</th><th>功能</th><th>範例</th></tr>
+                    <tr><td><code>notebooklm list</code></td><td>列出所有筆記本</td><td><code>notebooklm list --json</code></td></tr>
+                    <tr><td><code>notebooklm create</code></td><td>建立新筆記本</td><td><code>notebooklm create "我的專案"</code></td></tr>
+                    <tr><td><code>notebooklm use</code></td><td>選擇筆記本</td><td><code>notebooklm use notebook_id</code></td></tr>
+                    <tr><td><code>notebooklm source add</code></td><td>新增來源</td><td><code>notebooklm source add https://...</code></td></tr>
+                    <tr><td><code>notebooklm source list</code></td><td>列出來源</td><td><code>notebooklm source list</code></td></tr>
+                    <tr><td><code>notebooklm ask</code></td><td>提問</td><td><code>notebooklm ask "重點是什麼？"</code></td></tr>
+                    <tr><td><code>notebooklm generate audio</code></td><td>生成 Podcast</td><td><code>notebooklm generate audio</code></td></tr>
+                    <tr><td><code>notebooklm generate mind-map</code></td><td>生成心智圖</td><td><code>notebooklm generate mind-map</code></td></tr>
+                </table>
+                <div class="box info">
+                    <strong>小技巧：</strong>加上 <code>--json</code> 參數可以輸出 JSON 格式，方便程式處理。
+                </div>
+            </div>
+        </div>
+
+        <!-- 步驟四：啟動應用程式 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>步驟四：啟動應用程式</h2>
+
+                <div class="step-item">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h3>執行主程式</h3>
+                        <pre>python app.py</pre>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h3>看到以下訊息表示成功</h3>
+                        <pre>==================================================
+   亮言~NotebookLM 自動化Skill
+==================================================
+
+   啟動網頁伺服器...
+   請開啟瀏覽器訪問: http://localhost:5000
+
+==================================================</pre>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h3>開啟瀏覽器</h3>
+                        <p>訪問 <code>http://localhost:5000</code></p>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>恭喜！</strong>你已經成功安裝並啟動 NotebookLM 自動化工具！
+                </div>
+            </div>
+        </div>
+
+        <!-- 完成頁 -->
+        <div class="slide">
+            <div class="content-card cover-content">
+                <h1>Part 4B 完成！</h1>
+                <p class="cover-subtitle">所有工具都安裝好了</p>
+                <div class="concept-grid" style="margin-top: 25px;">
+                    <div class="concept-card">
+                        <h3>notebooklm-py</h3>
+                        <p>CLI 工具 ✓</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Playwright</h3>
+                        <p>瀏覽器自動化 ✓</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Google 登入</h3>
+                        <p>帳號授權 ✓</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Web GUI</h3>
+                        <p>Flask 應用 ✓</p>
+                    </div>
+                </div>
+                <p class="cover-info" style="margin-top: 25px;">
+                    <a href="Part4C_Web介面使用教學.html" style="color: #667eea; font-weight: bold; text-decoration: none;">
+                        下一節：Part 4C - Web 介面使用教學 →
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&#10095;</button>
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        function init() { createIndicators(); showSlide(0); updateButtons(); document.addEventListener('keydown', handleKeydown); }
+        function handleKeydown(e) { if (e.key === 'ArrowLeft') changeSlide(-1); if (e.key === 'ArrowRight') changeSlide(1); }
+        function createIndicators() { const container = document.getElementById('indicatorContainer'); slides.forEach((_, i) => { const dot = document.createElement('div'); dot.className = 'dot'; dot.onclick = () => goToSlide(i); container.appendChild(dot); }); }
+        function showSlide(index) { if (index < 0) index = 0; if (index >= totalSlides) index = totalSlides - 1; slides.forEach(s => s.classList.remove('active')); slides[index].classList.add('active'); currentSlide = index; document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === index)); updateButtons(); document.getElementById('pageIndicator').textContent = `${index + 1} / ${totalSlides}`; }
+        function changeSlide(d) { showSlide(currentSlide + d); }
+        function goToSlide(i) { showSlide(i); }
+        function updateButtons() { document.getElementById('prevBtn').disabled = currentSlide === 0; document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1; }
+        function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        init();
+    </script>
+</body>
+</html>

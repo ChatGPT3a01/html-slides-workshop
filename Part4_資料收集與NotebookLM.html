@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 4 - 資料收集與 NotebookLM 學習地圖</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .back-nav { margin-bottom: 30px; }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateX(-5px);
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+            animation: fadeInDown 1s ease;
+        }
+        .header .part-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 8px 25px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            font-weight: 800;
+        }
+        .header p {
+            font-size: 22px;
+            opacity: 0.95;
+        }
+
+        .main-section {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 30px;
+            padding: 45px;
+            margin-bottom: 40px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+            animation: fadeInUp 1s ease;
+        }
+
+        .section-description {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+            padding: 25px 30px;
+            border-radius: 15px;
+            margin-bottom: 35px;
+            border-left: 5px solid #667eea;
+            font-size: 17px;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .learning-path {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .path-item {
+            display: flex;
+            gap: 25px;
+            align-items: stretch;
+        }
+
+        .path-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 60px;
+        }
+        .path-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .path-line {
+            width: 4px;
+            flex-grow: 1;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            margin-top: 10px;
+        }
+        .path-item:last-child .path-line { display: none; }
+
+        .path-card {
+            flex: 1;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid #e8ecff;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            display: block;
+        }
+        .path-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .path-card h3 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .path-card h3 .icon { font-size: 28px; }
+        .path-card p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .path-card .topics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .topic-tag {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            color: #667eea;
+            padding: 5px 14px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .path-card .arrow {
+            float: right;
+            color: #667eea;
+            font-size: 20px;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .path-card:hover .arrow {
+            opacity: 1;
+            transform: translateX(5px);
+        }
+
+        .overview-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 35px;
+            color: white;
+            margin-top: 40px;
+        }
+        .overview-box h3 {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .overview-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+        }
+        .overview-item .number {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+        .overview-item .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .footer-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-3px);
+        }
+        .nav-link.next {
+            background: white;
+            color: #667eea;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 32px; }
+            .main-section { padding: 30px 25px; }
+            .overview-grid { grid-template-columns: repeat(2, 1fr); }
+            .footer-nav { flex-direction: column; gap: 15px; }
+            .path-item { flex-direction: column; }
+            .path-connector { flex-direction: row; width: auto; }
+            .path-line { width: auto; height: 4px; flex-grow: 1; margin-top: 0; margin-left: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-nav">
+            <a href="Day1.html" class="back-btn">← 返回 Day 1</a>
+        </div>
+
+        <div class="header">
+            <div class="part-badge">PART 4</div>
+            <h1>資料收集與 NotebookLM</h1>
+            <p>從手動操作到自動化控制的完整學習路徑</p>
+        </div>
+
+        <div class="main-section">
+            <div class="section-description">
+                Part 4 將帶你從 NotebookLM 的基礎手動操作，逐步進階到程式化自動控制。你將學會如何用 AI 整理簡報素材，並透過 Web 介面遠端操作 NotebookLM，大幅提升工作效率！
+            </div>
+
+            <div class="learning-path">
+                <!-- 4A -->
+                <div class="path-item">
+                    <div class="path-connector">
+                        <div class="path-number">A</div>
+                        <div class="path-line"></div>
+                    </div>
+                    <a href="Part4A_NotebookLM基礎操作.html" class="path-card">
+                        <h3><span class="icon">📊</span>NotebookLM 基礎操作<span class="arrow">→</span></h3>
+                        <p>學會使用 Google NotebookLM 網頁版，手動建立專案、匯入資料來源、整理簡報素材。這是所有進階功能的基礎！</p>
+                        <div class="topics">
+                            <span class="topic-tag">建立專案</span>
+                            <span class="topic-tag">匯入來源</span>
+                            <span class="topic-tag">AI 提問</span>
+                            <span class="topic-tag">來源標註</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 4B -->
+                <div class="path-item">
+                    <div class="path-connector">
+                        <div class="path-number">B</div>
+                        <div class="path-line"></div>
+                    </div>
+                    <a href="Part4B_安裝自動化工具.html" class="path-card">
+                        <h3><span class="icon">🔧</span>安裝自動化工具<span class="arrow">→</span></h3>
+                        <p>安裝 notebooklm-py CLI 工具和 Flask Web 應用程式，為自動化控制做準備。包含 Python 環境設定、套件安裝、Google 帳號登入。</p>
+                        <div class="topics">
+                            <span class="topic-tag">notebooklm-py</span>
+                            <span class="topic-tag">Playwright</span>
+                            <span class="topic-tag">Flask 安裝</span>
+                            <span class="topic-tag">帳號登入</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 4C -->
+                <div class="path-item">
+                    <div class="path-connector">
+                        <div class="path-number">C</div>
+                        <div class="path-line"></div>
+                    </div>
+                    <a href="Part4C_Web介面使用教學.html" class="path-card">
+                        <h3><span class="icon">🌐</span>Web 介面使用教學<span class="arrow">→</span></h3>
+                        <p>使用自動化 Web GUI，用自然語言控制 NotebookLM。一鍵生成 Podcast、心智圖、測驗等內容，大幅提升效率！</p>
+                        <div class="topics">
+                            <span class="topic-tag">自然語言控制</span>
+                            <span class="topic-tag">Podcast 生成</span>
+                            <span class="topic-tag">心智圖</span>
+                            <span class="topic-tag">測驗閃卡</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 4D -->
+                <div class="path-item">
+                    <div class="path-connector">
+                        <div class="path-number">D</div>
+                        <div class="path-line"></div>
+                    </div>
+                    <a href="Part4D_部署與遠端存取.html" class="path-card">
+                        <h3><span class="icon">🚀</span>部署與遠端存取<span class="arrow">→</span></h3>
+                        <p>將自動化工具部署到伺服器，實現遠端控制。學會本機分享、Waitress 部署、開機自啟等多種方案。</p>
+                        <div class="topics">
+                            <span class="topic-tag">區域網路</span>
+                            <span class="topic-tag">Waitress</span>
+                            <span class="topic-tag">開機自啟</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-nav">
+            <a href="Part3_手繪設計與AI生成.html" class="nav-link">← Part 3</a>
+            <a href="Day1.html" class="nav-link">返回 Day 1</a>
+            <a href="Part4A_NotebookLM基礎操作.html" class="nav-link next">開始學習 Part 4A →</a>
+        </div>
+    </div>
+</body>
+</html>

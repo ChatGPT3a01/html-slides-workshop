@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 10 - 圖片美化與互動效果</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; overflow: hidden; color: #333; }
+        .nav-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.15); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10000; }
+        .nav-title { font-size: 20px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 12px; align-items: center; }
+        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .nav-btn:hover { background: rgba(255,255,255,0.4); }
+        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.25); color: white; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; z-index: 9000; display: flex; align-items: center; justify-content: center; }
+        .nav-arrow:hover { background: rgba(255,255,255,0.5); transform: translateY(-50%) scale(1.1); }
+        .prev-arrow { left: 30px; } .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .slide { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); display: none; align-items: center; justify-content: center; padding: 40px; opacity: 0; transition: opacity 0.4s ease; }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card { background: rgba(255,255,255,0.98); border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); padding: 30px 40px; max-width: 1400px; width: 95%; max-height: 88vh; overflow-y: auto; }
+        h1 { color: #667eea; font-size: 38px; margin-bottom: 16px; text-align: center; font-weight: 800; }
+        h2 { color: #764ba2; font-size: 26px; margin-bottom: 16px; border-bottom: 3px solid #667eea; padding-bottom: 8px; }
+        h3 { color: #667eea; font-size: 19px; margin: 14px 0 8px 0; }
+        p, li { font-size: 15px; line-height: 1.65; color: #444; margin-bottom: 6px; }
+        ul, ol { margin-left: 22px; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; color: #d63384; font-size: 14px; }
+        pre { background: #282c34; color: #abb2bf; padding: 12px; border-radius: 10px; margin: 10px 0; font-size: 12px; font-family: 'Consolas', monospace; overflow-x: auto; line-height: 1.5; }
+        .box { padding: 10px 15px; border-radius: 10px; margin: 10px 0; border-left: 4px solid; font-size: 14px; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; }
+        .concept-card { background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%); padding: 15px; border-radius: 12px; border: 2px solid #e8ecff; }
+        .concept-card:hover { transform: translateY(-3px); border-color: #667eea; }
+        .tag-badge { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin: 2px; }
+        .time-badge { display: inline-block; background: #667eea; color: white; padding: 5px 12px; border-radius: 15px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; font-weight: 700; font-size: 13px; margin-right: 8px; }
+        .screenshot { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin: 12px 0; border: 2px solid #e0e0e0; }
+        .screenshot-container { text-align: center; margin: 12px 0; }
+        .screenshot-caption { font-size: 13px; color: #666; margin-top: 8px; font-style: italic; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .two-column { grid-template-columns: 1fr; } }
+        .indicators { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 4000; padding: 8px 15px; background: rgba(0,0,0,0.3); border-radius: 25px; backdrop-filter: blur(5px); flex-wrap: wrap; max-width: 90%; justify-content: center; }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #fff; transform: scale(1.4); }
+        .cover-content { text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 50vh; }
+        .cover-content h1 { font-size: 44px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .cover-subtitle { font-size: 22px; color: #764ba2; margin-bottom: 20px; }
+        .cover-info { font-size: 15px; color: #888; margin-top: 25px; }
+        .section-divider { text-align: center; padding: 25px; }
+        .section-divider h1 { font-size: 42px; }
+        .section-divider p { font-size: 18px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        tr:nth-child(even) { background: #f8f9ff; }
+        .flow-chart { background: #f8f9ff; padding: 15px; border-radius: 10px; text-align: center; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <div class="nav-title">Part 10 - 圖片美化與互動效果</div>
+        <div class="nav-buttons">
+            <a href="Day2.html" class="nav-btn">首頁</a>
+            <a href="Part9_真實專案與卡片內容.html" class="nav-btn">&larr; 上一章</a>
+            <a href="Part11_GitHub_Pages部署.html" class="nav-btn">下一章 &rarr;</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <span class="nav-btn" id="pageIndicator">1 / 22</span>
+        </div>
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">&larr;</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">&rarr;</button>
+
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card cover-content">
+                <h1>Part 10：圖片美化與互動效果</h1>
+                <p class="cover-subtitle">加入圖片截圖、CSS 動畫、滾動互動，讓你的網頁活起來</p>
+                <div style="margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">img 標籤</span>
+                    <span class="tag-badge">截圖</span>
+                    <span class="tag-badge">emoji</span>
+                    <span class="tag-badge">CSS 動畫</span>
+                    <span class="tag-badge">IntersectionObserver</span>
+                </div>
+                <p class="cover-info">小成品 17-18 | Day 2 上午<br>曾慶良（阿亮老師）| AI 協作簡報實戰工作坊</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: 目錄 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>本章學習地圖</h2>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>小成品 17</h3>
+                        <p style="font-size: 20px; font-weight: 700; color: #764ba2;">加入圖片、截圖與視覺美化</p>
+                        <p>學會使用 img 標籤插入圖片、加入 emoji 裝飾、用 AI 生成美化樣式</p>
+                        <span class="time-badge">11:00 - 11:30</span>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>小成品 18</h3>
+                        <p style="font-size: 20px; font-weight: 700; color: #764ba2;">加入滾動動畫與互動效果</p>
+                        <p>CSS 動畫原理、IntersectionObserver 偵測滾動、hover 效果與回到頂部按鈕</p>
+                        <span class="time-badge">11:30 - 12:00</span>
+                    </div>
+                </div>
+                <div class="box info" style="margin-top: 18px;">
+                    <strong>學習目標：</strong>讓你的靜態網頁加入圖片、動畫和互動，從「能看」變成「好看又好用」！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 小成品 17 標題頁 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <span class="time-badge">11:00 - 11:30</span>
+                <h1>小成品 17：加入圖片、截圖與視覺美化</h1>
+                <p>用圖片和 emoji 讓網頁更生動、更專業</p>
+                <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">img 標籤</span>
+                    <span class="tag-badge">截圖工具</span>
+                    <span class="tag-badge">emoji</span>
+                    <span class="tag-badge">CSS 美化</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 為什麼要加圖片？ -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>為什麼要加圖片？</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>更容易閱讀</h3>
+                        <p>圖片能幫助讀者快速理解內容，一張好的截圖勝過千字說明</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>更吸引人</h3>
+                        <p>純文字的頁面容易讓人疲勞，圖片能抓住視線、提升閱讀體驗</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>更專業</h3>
+                        <p>有圖片的作品集看起來更完整，展示時更有說服力</p>
+                    </div>
+                </div>
+                <h3 style="margin-top: 20px;">三種圖片來源</h3>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card">
+                        <h3>工具截圖</h3>
+                        <p>截取你使用的工具畫面，例如 NotebookLM、ChatGPT 介面等</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>emoji 裝飾</h3>
+                        <p>在標題和內容中加入 emoji 符號，增加視覺趣味</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>AI 美化 CSS</h3>
+                        <p>請 AI 幫你生成漂亮的步驟樣式、圓形編號等 CSS 效果</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img69.png" alt="加入圖片前後對比" class="screenshot">
+                    <p class="screenshot-caption">加入圖片前後的頁面對比效果</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 截取工具操作截圖 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>截取工具操作截圖</h2>
+                <p>截圖是最簡單的圖片來源，把你操作工具的畫面拍下來就好！</p>
+                <div class="two-column" style="margin-top: 15px;">
+                    <div class="concept-card">
+                        <h3>Windows 截圖快捷鍵</h3>
+                        <p style="font-size: 20px; font-weight: 700; text-align: center; color: #764ba2; margin: 10px 0;">
+                            Win + Shift + S
+                        </p>
+                        <p>按下後可以框選要截取的區域，截圖會自動複製到剪貼簿</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Mac 截圖快捷鍵</h3>
+                        <p style="font-size: 20px; font-weight: 700; text-align: center; color: #764ba2; margin: 10px 0;">
+                            Cmd + Shift + 4
+                        </p>
+                        <p>按下後用十字游標框選區域，截圖會自動儲存到桌面</p>
+                    </div>
+                </div>
+                <h3 style="margin-top: 15px;">建議截取的畫面</h3>
+                <ul>
+                    <li><strong>工具首頁</strong>：展示你使用了哪些 AI 工具</li>
+                    <li><strong>API Key 輸入畫面</strong>：展示設定過程（注意遮住金鑰！）</li>
+                    <li><strong>角色描述畫面</strong>：展示你設計的 AI 角色</li>
+                    <li><strong>對話結果</strong>：展示 AI 回覆的效果</li>
+                </ul>
+                <div class="screenshot-container">
+                    <img src="images/img70.png" alt="截圖操作示範" class="screenshot">
+                    <p class="screenshot-caption">使用系統截圖工具擷取操作畫面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: 建立 images 資料夾 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>建立 images 資料夾</h2>
+                <p>截圖拍好後，需要一個地方存放這些圖片檔案。</p>
+                <h3>資料夾結構</h3>
+<pre>
+my-project/
+  ├── my-card-page.html    &lt;-- 你的網頁檔案
+  └── images/              &lt;-- 新建這個資料夾
+       ├── tool-homepage.png
+       ├── api-key-input.png
+       ├── chat-result.png
+       └── role-setting.png
+</pre>
+                <h3>命名規則</h3>
+                <ul>
+                    <li><strong>用英文命名</strong>：<code>tool-homepage.png</code>（不要用中文）</li>
+                    <li><strong>用小寫字母</strong>：<code>api-key-input.png</code>（不要用大寫）</li>
+                    <li><strong>用短橫線分隔</strong>：<code>chat-result.png</code>（不要用空格）</li>
+                    <li><strong>說明性名稱</strong>：看檔名就知道是什麼圖片</li>
+                </ul>
+                <div class="box warning">
+                    <strong>重要提醒：</strong>檔案路徑最好用英文！中文路徑在某些伺服器上可能會出錯，養成用英文命名的好習慣。
+                </div>
+                <div class="box info">
+                    <strong>操作步驟：</strong>在你的專案資料夾中，右鍵 &rarr; 新增資料夾 &rarr; 命名為 <code>images</code> &rarr; 把截圖存進去。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: img 標籤用法 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>img 標籤用法</h2>
+                <h3>基本語法</h3>
+<pre>
+&lt;img src="images/tool-homepage.png" alt="工具首頁截圖"&gt;
+</pre>
+                <div class="two-column" style="margin-top: 12px;">
+                    <div class="concept-card">
+                        <h3>src = source（來源）</h3>
+                        <p>告訴瀏覽器圖片檔案在哪裡</p>
+                        <ul>
+                            <li><code>src="images/xxx.png"</code> 表示在 images 資料夾裡</li>
+                            <li>路徑是相對於 HTML 檔案的位置</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>alt = alternative（替代文字）</h3>
+                        <p>圖片無法顯示時會出現的文字</p>
+                        <ul>
+                            <li>對視障者的螢幕閱讀器很重要</li>
+                            <li>也有助於 SEO 搜尋引擎最佳化</li>
+                        </ul>
+                    </div>
+                </div>
+                <h3 style="margin-top: 15px;">加上 CSS 美化</h3>
+<pre>
+&lt;img src="images/tool-homepage.png"
+     alt="工具首頁截圖"
+     style="width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);"&gt;
+</pre>
+                <div class="box info">
+                    <strong>小技巧：</strong><code>width: 100%</code> 讓圖片自動填滿容器寬度；<code>border-radius</code> 加圓角；<code>box-shadow</code> 加陰影，三行 CSS 就能讓圖片質感大提升！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 圖片插入效果 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>圖片插入效果展示</h2>
+                <p>加入圖片後，原本純文字的卡片頁面瞬間變得更豐富、更專業！</p>
+                <div class="two-column" style="margin-top: 15px;">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>加圖片前</h3>
+                        <p>只有文字和標題，版面空洞</p>
+                        <p style="font-size: 13px; color: #999;">讀者容易失去興趣</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>加圖片後</h3>
+                        <p>圖文並茂，專業度大幅提升</p>
+                        <p style="font-size: 13px; color: #999;">一目了然，吸引眼球</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img71.png" alt="加入圖片後的效果" class="screenshot">
+                    <p class="screenshot-caption">加入圖片後的卡片頁面效果</p>
+                </div>
+                <div class="box success">
+                    <strong>效果立竿見影：</strong>只要加幾張截圖，網頁的「完成度」和「專業感」就會大幅提升。圖片是最省力的視覺升級方式！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 加入 emoji 裝飾 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>加入 emoji 裝飾</h2>
+                <p>emoji 是最簡單的視覺裝飾，不需要找圖片，直接打字就能用！</p>
+                <h3>範例：卡片標題加上 emoji</h3>
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="concept-card">
+                        <p style="font-size: 18px; font-weight: 700;">原本的標題</p>
+                        <ul>
+                            <li>工具介紹</li>
+                            <li>操作步驟</li>
+                            <li>學習心得</li>
+                            <li>未來計畫</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <p style="font-size: 18px; font-weight: 700;">加 emoji 後</p>
+                        <ul style="list-style: none; margin-left: 0;">
+                            <li>&#x1F6E0;&#xFE0F; 工具介紹</li>
+                            <li>&#x1F4CB; 操作步驟</li>
+                            <li>&#x1F4A1; 學習心得</li>
+                            <li>&#x1F680; 未來計畫</li>
+                        </ul>
+                    </div>
+                </div>
+                <h3 style="margin-top: 15px;">如何輸入 emoji</h3>
+                <div class="two-column">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Windows</h3>
+                        <p style="font-size: 20px; font-weight: 700; color: #764ba2;">Win + .</p>
+                        <p>按下 Windows 鍵和句號鍵</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Mac</h3>
+                        <p style="font-size: 20px; font-weight: 700; color: #764ba2;">Ctrl + Cmd + Space</p>
+                        <p>按下三個鍵開啟 emoji 面板</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img72.png" alt="emoji 裝飾效果" class="screenshot">
+                    <p class="screenshot-caption">加入 emoji 後的卡片標題效果</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 用 AI 生成步驟樣式 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>用 AI 生成步驟樣式</h2>
+                <p>請 AI 幫你設計漂亮的「圓形編號 + 連接線」步驟卡片！</p>
+                <h3>Prompt 範例</h3>
+                <div class="box info">
+                    <strong>你可以這樣問 AI：</strong>「請幫我設計一個步驟流程的 CSS 樣式，要有圓形編號、連接線、每個步驟有標題和說明文字，風格要現代簡約。」
+                </div>
+                <h3>AI 生成的 CSS 範例</h3>
+<pre>
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  position: relative;
+}
+.step-circle {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.step-content {
+  margin-left: 15px;
+}
+/* 連接線 */
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 45px;
+  width: 2px;
+  height: calc(100% - 20px);
+  background: #667eea;
+}
+</pre>
+                <div class="screenshot-container">
+                    <img src="images/img73.png" alt="步驟卡片樣式" class="screenshot">
+                    <p class="screenshot-caption">AI 生成的圓形編號步驟卡片效果</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 小成品 17 完成確認 -->
+        <div class="slide">
+            <div class="content-card" style="text-align: center;">
+                <div class="box success" style="padding: 30px; font-size: 16px;">
+                    <h2 style="border: none; text-align: center; color: #155724;">小成品 17 完成！</h2>
+                    <p style="font-size: 18px; margin-top: 10px;">你的網頁已經加入圖片和視覺美化效果了！</p>
+                </div>
+                <div class="concept-grid" style="margin-top: 20px;">
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>使用截圖工具擷取畫面</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>用 img 標籤插入圖片</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>加入 emoji 裝飾標題</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已學會</h3>
+                        <p>用 AI 生成美化 CSS</p>
+                    </div>
+                </div>
+                <p style="margin-top: 20px; font-size: 14px; color: #666;">接下來，讓我們加入動畫效果，讓網頁真正「動」起來！</p>
+            </div>
+        </div>
+
+        <!-- Slide 12: 小成品 18 標題頁 -->
+        <div class="slide">
+            <div class="content-card section-divider">
+                <span class="time-badge">11:30 - 12:00</span>
+                <h1>小成品 18：加入滾動動畫與互動效果</h1>
+                <p>讓卡片隨著滾動淡入出現，加上 hover 浮起效果和回到頂部按鈕</p>
+                <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <span class="tag-badge">CSS 動畫</span>
+                    <span class="tag-badge">IntersectionObserver</span>
+                    <span class="tag-badge">hover</span>
+                    <span class="tag-badge">fixed 定位</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 滾動動畫原理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>滾動動畫原理</h2>
+                <h3>魔術師比喻</h3>
+                <div class="flow-chart">
+                    <p style="font-size: 20px; letter-spacing: 2px;">
+                        躲在布幕後（透明）&rarr; 觀眾看到（滾動到位置）&rarr; 走出來（動畫出現）
+                    </p>
+                </div>
+                <div class="concept-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Step 1：隱藏</h3>
+                        <p>卡片一開始是<strong>透明</strong>的，而且往下偏移一段距離</p>
+                        <p style="font-size: 13px; color: #999;">opacity: 0 + translateY(40px)</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Step 2：偵測</h3>
+                        <p>JavaScript 偵測卡片是否<strong>進入視窗範圍</strong></p>
+                        <p style="font-size: 13px; color: #999;">IntersectionObserver 負責這件事</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>Step 3：出現</h3>
+                        <p>加上 <code>visible</code> class，卡片<strong>淡入並上移</strong>到正確位置</p>
+                        <p style="font-size: 13px; color: #999;">opacity: 1 + translateY(0)</p>
+                    </div>
+                </div>
+                <div class="two-column" style="margin-top: 15px;">
+                    <div class="concept-card">
+                        <h3>CSS 負責什麼？</h3>
+                        <p>控制<strong>視覺樣式</strong>：透明度、位移、動畫速度</p>
+                        <p>定義「隱藏狀態」和「出現狀態」的樣子</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>JavaScript 負責什麼？</h3>
+                        <p>控制<strong>觸發時機</strong>：偵測卡片是否滾動到畫面中</p>
+                        <p>在正確時間加上 <code>visible</code> class</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: CSS 動畫樣式 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>CSS 動畫樣式</h2>
+                <h3>在你的 CSS 中加入這兩段</h3>
+<pre>
+/* 初始狀態：隱藏 + 往下偏移 */
+.card {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+/* 出現狀態：顯示 + 回到原位 */
+.card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</pre>
+                <h3 style="margin-top: 15px;">逐行解釋</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CSS 屬性</th>
+                            <th>意思</th>
+                            <th>生活比喻</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>opacity: 0</code></td>
+                            <td>完全透明（看不見）</td>
+                            <td>魔術師躲在布幕後</td>
+                        </tr>
+                        <tr>
+                            <td><code>transform: translateY(40px)</code></td>
+                            <td>往下移動 40 像素</td>
+                            <td>蹲在舞台下方</td>
+                        </tr>
+                        <tr>
+                            <td><code>transition: ... 0.6s ease</code></td>
+                            <td>變化過程花 0.6 秒，緩入緩出</td>
+                            <td>慢慢走出來，不是瞬間移動</td>
+                        </tr>
+                        <tr>
+                            <td><code>opacity: 1</code></td>
+                            <td>完全不透明（看得見）</td>
+                            <td>站到舞台中央</td>
+                        </tr>
+                        <tr>
+                            <td><code>translateY(0)</code></td>
+                            <td>回到原本位置</td>
+                            <td>站直，面對觀眾</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-container">
+                    <img src="images/img74.png" alt="CSS 動畫程式碼" class="screenshot">
+                    <p class="screenshot-caption">CSS 動畫的隱藏與出現狀態</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: JavaScript IntersectionObserver -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>JavaScript IntersectionObserver</h2>
+                <h3>「門衛」比喻</h3>
+                <p>IntersectionObserver 就像一個站在門口的門衛，負責偵測誰進入了視線範圍。</p>
+                <h3 style="margin-top: 12px;">程式碼</h3>
+<pre>
+// 建立一個「門衛」觀察者
+const observer = new IntersectionObserver((entries) =&gt; {
+  entries.forEach(entry =&gt; {
+    if (entry.isIntersecting) {
+      // 卡片進入視線範圍了！加上 visible class
+      entry.target.classList.add('visible');
+    }
+  });
+}, {
+  threshold: 0.2  // 出現 20% 就觸發
+});
+
+// 讓門衛觀察所有卡片
+document.querySelectorAll('.card').forEach(card =&gt; {
+  observer.observe(card);
+});
+</pre>
+                <h3 style="margin-top: 12px;">程式碼解釋</h3>
+                <ul>
+                    <li><code>IntersectionObserver</code>：瀏覽器內建的「偵測元素是否在畫面中」的工具</li>
+                    <li><code>entry.isIntersecting</code>：如果元素進入視窗範圍，回傳 true</li>
+                    <li><code>classList.add('visible')</code>：加上 visible class，觸發 CSS 動畫</li>
+                    <li><code>threshold: 0.2</code>：元素出現 20% 就觸發（0.2 = 20%）</li>
+                </ul>
+                <div class="box info">
+                    <strong>把這段 JS 放在哪裡？</strong>放在 HTML 最下方的 <code>&lt;script&gt;</code> 標籤中，確保所有 HTML 元素已經載入完成。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: 測試動畫效果 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>測試動畫效果</h2>
+                <h3>測試步驟</h3>
+                <ol>
+                    <li><span class="step-number">1</span>儲存你的 HTML 檔案</li>
+                    <li><span class="step-number">2</span>在瀏覽器中重新整理頁面（Ctrl + R 或 Cmd + R）</li>
+                    <li><span class="step-number">3</span><strong>慢慢往下滾動</strong>，觀察每張卡片的出現動畫</li>
+                    <li><span class="step-number">4</span>卡片應該會從下方「淡入上移」到正確位置</li>
+                </ol>
+                <div class="box warning" style="margin-top: 12px;">
+                    <strong>看不到動畫？</strong>確認以下事項：
+                    <ul style="margin-bottom: 0;">
+                        <li>CSS 中的 <code>.card</code> 和你的 HTML class 名稱是否一致</li>
+                        <li>JavaScript 是否放在 <code>&lt;/body&gt;</code> 前面</li>
+                        <li>瀏覽器主控台有沒有錯誤訊息（按 F12 查看）</li>
+                    </ul>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img75.png" alt="滾動動畫效果" class="screenshot">
+                    <p class="screenshot-caption">滾動時卡片依序淡入出現的效果</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Hover 效果 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>Hover 效果：滑鼠移上去卡片浮起</h2>
+                <p>讓使用者把滑鼠移到卡片上時，卡片會微微浮起，增加互動感。</p>
+                <h3>CSS 程式碼</h3>
+<pre>
+.card.visible:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+</pre>
+                <h3 style="margin-top: 12px;">效果說明</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CSS 屬性</th>
+                            <th>效果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>translateY(-5px)</code></td>
+                            <td>卡片往上浮起 5 像素</td>
+                        </tr>
+                        <tr>
+                            <td><code>box-shadow: 0 12px 30px ...</code></td>
+                            <td>加深陰影，營造「懸浮」的視覺效果</td>
+                        </tr>
+                        <tr>
+                            <td><code>transition: 0.3s ease</code></td>
+                            <td>浮起的過程花 0.3 秒，感覺更自然</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="box info" style="margin-top: 12px;">
+                    <strong>為什麼用 <code>.card.visible:hover</code>？</strong>確保只有已經出現（有 visible class）的卡片才有 hover 效果，避免還沒出現的隱藏卡片也被觸發。
+                </div>
+                <div class="box success">
+                    <strong>小細節大加分：</strong>hover 效果雖然只是微小的視覺變化，但能讓使用者感受到「這個網站是有互動的」，大幅提升專業感。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 回到頂部按鈕 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>回到頂部按鈕</h2>
+                <p>當頁面很長的時候，使用者需要一個快速回到頂部的方法。</p>
+                <h3>HTML 程式碼</h3>
+<pre>
+&lt;a href="#" class="back-to-top" title="回到頂部"&gt;&#x2191;&lt;/a&gt;
+</pre>
+                <h3>CSS 程式碼</h3>
+<pre>
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  text-decoration: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.back-to-top:hover {
+  transform: scale(1.1);
+}
+</pre>
+                <h3 style="margin-top: 12px;">重點說明</h3>
+                <ul>
+                    <li><code>position: fixed</code>：固定在螢幕上，不會隨著滾動消失</li>
+                    <li><code>bottom: 30px; right: 30px</code>：固定在右下角</li>
+                    <li><code>z-index: 1000</code>：確保按鈕在所有內容的最上層</li>
+                    <li><code>href="#"</code>：點擊後跳回頁面最頂端</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 19: 上午最終檢查 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>上午最終檢查清單</h2>
+                <p>在結束上午課程前，確認你的作品具備以下功能：</p>
+                <div class="concept-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-top: 15px;">
+                    <div class="concept-card">
+                        <h3>滾動動畫</h3>
+                        <p>卡片在滾動時會淡入出現</p>
+                        <p style="font-size: 13px; color: #666;">IntersectionObserver + CSS transition</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>手機版適配</h3>
+                        <p>在手機上也能正常顯示</p>
+                        <p style="font-size: 13px; color: #666;">F12 &rarr; 手機模擬器檢查</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>目錄連結</h3>
+                        <p>點擊目錄可跳到對應區塊</p>
+                        <p style="font-size: 13px; color: #666;">使用 id + href="#xxx"</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>回到頂部按鈕</h3>
+                        <p>右下角固定的圓形按鈕</p>
+                        <p style="font-size: 13px; color: #666;">position: fixed</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Hover 效果</h3>
+                        <p>滑鼠移上卡片會浮起</p>
+                        <p style="font-size: 13px; color: #666;">:hover + translateY(-5px)</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>圖片與截圖</h3>
+                        <p>至少加入 2-3 張截圖</p>
+                        <p style="font-size: 13px; color: #666;">img 標籤 + images 資料夾</p>
+                    </div>
+                </div>
+                <div class="screenshot-container">
+                    <img src="images/img76.png" alt="完成品全貌" class="screenshot">
+                    <p class="screenshot-caption">上午完成的作品全貌</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: 練習時間 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>練習時間</h2>
+                <div class="concept-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="concept-card">
+                        <h3>練習 A：調整動畫速度</h3>
+                        <p>修改 <code>transition</code> 的秒數，觀察效果差異：</p>
+                        <ul>
+                            <li><code>0.3s</code> &rarr; 快速俐落</li>
+                            <li><code>0.6s</code> &rarr; 預設，自然流暢</li>
+                            <li><code>1.0s</code> &rarr; 慢動作，有戲劇感</li>
+                            <li><code>1.5s</code> &rarr; 超慢，優雅感</li>
+                        </ul>
+                        <span class="time-badge">5 分鐘</span>
+                    </div>
+                    <div class="concept-card">
+                        <h3>練習 B：改變動畫方向</h3>
+                        <p>把 <code>translateY(40px)</code> 換成其他方向：</p>
+                        <ul>
+                            <li><code>translateX(-40px)</code> &rarr; 從左邊滑入</li>
+                            <li><code>translateX(40px)</code> &rarr; 從右邊滑入</li>
+                            <li><code>translateY(-40px)</code> &rarr; 從上方滑入</li>
+                            <li><code>scale(0.8)</code> &rarr; 從小變大</li>
+                        </ul>
+                        <span class="time-badge">5 分鐘</span>
+                    </div>
+                    <div class="concept-card">
+                        <h3>練習 C：依序出現效果</h3>
+                        <p>用 <code>transition-delay</code> 讓卡片依序出現：</p>
+<pre style="font-size: 11px;">
+.card:nth-child(1) {
+  transition-delay: 0s;
+}
+.card:nth-child(2) {
+  transition-delay: 0.1s;
+}
+.card:nth-child(3) {
+  transition-delay: 0.2s;
+}
+</pre>
+                        <span class="time-badge">5 分鐘</span>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>自由發揮：</strong>試著混合不同的動畫方向和速度，找到你最喜歡的組合！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 21: 小成品 18 完成確認 -->
+        <div class="slide">
+            <div class="content-card" style="text-align: center;">
+                <div class="box success" style="padding: 30px; font-size: 16px;">
+                    <h2 style="border: none; text-align: center; color: #155724;">小成品 18 完成！</h2>
+                    <p style="font-size: 18px; margin-top: 10px;">你的網頁已經加入滾動動畫和互動效果了！</p>
+                </div>
+                <div class="concept-grid" style="margin-top: 20px;">
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>CSS 滾動動畫（淡入 + 上移）</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>IntersectionObserver 偵測</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>Hover 浮起效果</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>已完成</h3>
+                        <p>回到頂部按鈕</p>
+                    </div>
+                </div>
+                <p style="margin-top: 20px; font-size: 14px; color: #666;">上午的作品大功告成！下午我們要把它放到網路上，讓全世界都能看到！</p>
+            </div>
+        </div>
+
+        <!-- Slide 22: 本章回顧 + 下一章 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>本章回顧</h2>
+                <div class="concept-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>img 標籤</h3>
+                        <p><code>src</code> 指定圖片路徑，<code>alt</code> 提供替代文字，搭配 CSS 加圓角和陰影</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>CSS 動畫</h3>
+                        <p><code>opacity</code> 控制透明度、<code>transform</code> 控制位移、<code>transition</code> 控制過渡時間</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>IntersectionObserver</h3>
+                        <p>瀏覽器內建的「門衛」，偵測元素是否滾動到畫面中，自動觸發動畫</p>
+                    </div>
+                    <div class="concept-card" style="text-align: center;">
+                        <h3>hover + fixed</h3>
+                        <p>hover 讓卡片浮起增加互動感，fixed 讓按鈕固定在螢幕上不隨滾動消失</p>
+                    </div>
+                </div>
+                <div class="flow-chart" style="margin-top: 20px;">
+                    <p style="font-size: 16px; font-weight: 700;">下一章預告</p>
+                    <h3 style="margin-top: 8px;">Part 11 - GitHub Pages 部署</h3>
+                    <p style="margin-top: 8px;">把你的作品上傳到 GitHub，部署到網路上讓全世界都能看到！</p>
+                    <a href="Part11_GitHub_Pages部署.html" class="nav-btn" style="display: inline-block; margin-top: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 10px 24px; font-size: 15px;">前往 Part 11 &rarr;</a>
+                </div>
+                <div class="box success" style="margin-top: 15px;">
+                    <strong>上午作品完成！</strong>下午把它放到網路上讓全世界看到！
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide=0;const slides=document.querySelectorAll('.slide');const totalSlides=slides.length;
+        function init(){createIndicators();showSlide(0);updateButtons();document.addEventListener('keydown',handleKeydown);}
+        function handleKeydown(e){if(e.key==='ArrowLeft')changeSlide(-1);if(e.key==='ArrowRight')changeSlide(1);if(e.key==='Home')goToSlide(0);if(e.key==='End')goToSlide(totalSlides-1);}
+        function createIndicators(){const c=document.getElementById('indicatorContainer');c.innerHTML='';slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot';d.onclick=()=>goToSlide(i);c.appendChild(d);});}
+        function showSlide(i){if(i<0)i=0;if(i>=totalSlides)i=totalSlides-1;slides.forEach(s=>s.classList.remove('active'));slides[i].classList.add('active');currentSlide=i;document.querySelectorAll('.dot').forEach((d,idx)=>d.classList.toggle('active',idx===i));updateButtons();document.getElementById('pageIndicator').textContent=`${i+1} / ${totalSlides}`;}
+        function changeSlide(d){showSlide(currentSlide+d);}function goToSlide(i){showSlide(i);}
+        function updateButtons(){document.getElementById('prevBtn').disabled=currentSlide===0;document.getElementById('nextBtn').disabled=currentSlide===totalSlides-1;}
+        function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen();}
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 協作簡報實戰：從手繪到上線 GitHub 的 HTML 簡報製作</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            font-weight: 800;
+        }
+
+        .header p {
+            font-size: 24px;
+            opacity: 0.95;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .header .course-info {
+            margin-top: 25px;
+            font-size: 18px;
+            opacity: 0.85;
+            line-height: 1.8;
+        }
+
+        .main-section {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 30px;
+            padding: 45px;
+            margin-bottom: 50px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+            animation: fadeInUp 1s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .main-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 4px solid #667eea;
+        }
+
+        .section-icon {
+            font-size: 48px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .section-info {
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 36px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .section-subtitle {
+            font-size: 18px;
+            opacity: 0.75;
+            font-weight: 400;
+            color: #764ba2;
+        }
+
+        .section-description {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+            padding: 20px 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .parts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .part-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 18px;
+            padding: 28px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .part-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .part-card:hover::before {
+            opacity: 1;
+        }
+
+        .part-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .part-number {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .part-title {
+            font-size: 17px;
+            line-height: 1.6;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .part-desc {
+            font-size: 13px;
+            opacity: 0.85;
+            margin-top: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 70px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 25px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .footer h3 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .footer p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 14px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .footer-link:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+            text-decoration: none;
+        }
+
+        .progress-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            z-index: 10000;
+            transition: width 0.3s ease;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .main-section {
+                padding: 30px 25px;
+            }
+
+            .section-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+
+            .section-title {
+                font-size: 24px;
+            }
+
+            .parts-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            .part-card {
+                padding: 22px;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-indicator" id="progressBar"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>AI 協作簡報實戰</h1>
+            <p>從手繪到上線 GitHub 的 HTML 簡報製作</p>
+            <div class="course-info">
+                兩天工作坊 | 24 個實作練習<br>
+                零基礎也能學會用 AI 做出專業網頁簡報
+            </div>
+        </div>
+
+        <!-- Day 1 -->
+        <div class="main-section">
+            <div class="section-header">
+                <div class="section-icon">📚</div>
+                <div class="section-info">
+                    <h2 class="section-title">Day 1：HTML 簡報基礎與模板建立</h2>
+                    <p class="section-subtitle">實作 1-12 | 認識 HTML、建立模板、AI 協作內容生成</p>
+                </div>
+            </div>
+            <div class="section-description">
+                Day 1 將帶你從零開始認識 HTML，學會用 Reveal.js 製作簡報，並透過手繪設計讓 AI 幫你生成 HTML 程式碼。下半天學習使用 NotebookLM 整理資料，設計可重複使用的 Prompt 組，最後建立你的 AI 協作 Skill。
+            </div>
+            <div class="parts-grid">
+                <a href="Part1_HTML基礎入門.html" class="part-card">
+                    <div class="part-number">Part 1</div>
+                    <div class="part-title">HTML 基礎入門</div>
+                    <div class="part-desc">實作 1-2 | 認識標籤、VS Code 操作</div>
+                </a>
+                <a href="Part2_Reveal.js簡報框架.html" class="part-card">
+                    <div class="part-number">Part 2</div>
+                    <div class="part-title">Reveal.js 簡報框架</div>
+                    <div class="part-desc">實作 3 | 快捷鍵、總覽模式、講者備註</div>
+                </a>
+                <a href="Part3_手繪設計與AI生成.html" class="part-card">
+                    <div class="part-number">Part 3</div>
+                    <div class="part-title">手繪設計與 AI 生成</div>
+                    <div class="part-desc">實作 4-6 | Wireframe、Prompt 三要素、模板化</div>
+                </a>
+                <a href="Part4_資料收集與NotebookLM.html" class="part-card">
+                    <div class="part-number">Part 4</div>
+                    <div class="part-title">資料收集與 NotebookLM</div>
+                    <div class="part-desc">實作 7-9 | 資料整理、來源標註、內容大綱</div>
+                </a>
+                <a href="Part5_Prompt設計與內容生成.html" class="part-card">
+                    <div class="part-number">Part 5</div>
+                    <div class="part-title">Prompt 設計與內容生成</div>
+                    <div class="part-desc">實作 10-12 | 5 個 Prompt 組、AI 生成內容</div>
+                </a>
+                <a href="Part6_進階技巧與Skill建立.html" class="part-card">
+                    <div class="part-number">Part 6</div>
+                    <div class="part-title">進階技巧與 Skill 建立</div>
+                    <div class="part-desc">進階 | README.md、資料夾結構、GitHub</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Day 2 -->
+        <div class="main-section">
+            <div class="section-header">
+                <div class="section-icon">🚀</div>
+                <div class="section-info">
+                    <h2 class="section-title">Day 2：完善簡報與 GitHub 上線</h2>
+                    <p class="section-subtitle">實作 13-24 | 瀑布式卡片網頁、GitHub Pages 部署、AI 客服系統</p>
+                </div>
+            </div>
+            <div class="section-description">
+                Day 2 將帶你認識另一種網頁呈現方式——瀑布式卡片網頁，學習用 AI 快速生成完整模板，加入截圖和滾動動畫，然後把作品部署到 GitHub Pages 讓全世界都能看到。下午還會體驗 Fork 開源專案、部署 AI 客服系統到 Netlify，最後完成 README 撰寫與課程總結。
+            </div>
+            <div class="parts-grid">
+                <a href="Part8_瀑布式卡片網頁基礎.html" class="part-card">
+                    <div class="part-number">Part 8</div>
+                    <div class="part-title">瀑布式卡片網頁基礎</div>
+                    <div class="part-desc">實作 13-14 | div 容器、AI 生成卡片模板</div>
+                </a>
+                <a href="Part9_真實專案與卡片內容.html" class="part-card">
+                    <div class="part-number">Part 9</div>
+                    <div class="part-title">真實專案與卡片內容</div>
+                    <div class="part-desc">實作 15-16 | LINE 貼圖工具、AI 生成卡片文字</div>
+                </a>
+                <a href="Part10_圖片美化與互動效果.html" class="part-card">
+                    <div class="part-number">Part 10</div>
+                    <div class="part-title">圖片美化與互動效果</div>
+                    <div class="part-desc">實作 17-18 | 截圖插入、CSS 動畫、滾動效果</div>
+                </a>
+                <a href="Part11_GitHub_Pages部署.html" class="part-card">
+                    <div class="part-number">Part 11</div>
+                    <div class="part-title">GitHub Pages 部署</div>
+                    <div class="part-desc">實作 19-20 | 建帳號、上傳部署、Fork 開源專案</div>
+                </a>
+                <a href="Part12_AI客服系統部署.html" class="part-card">
+                    <div class="part-number">Part 12</div>
+                    <div class="part-title">AI 客服系統部署</div>
+                    <div class="part-desc">實作 21-22 | Netlify、Supabase、環境變數</div>
+                </a>
+                <a href="Part13_上線測試與課程總結.html" class="part-card">
+                    <div class="part-number">Part 13</div>
+                    <div class="part-title">上線測試與課程總結</div>
+                    <div class="part-desc">實作 23-24 | README、手機測試、成果展示</div>
+                </a>
+                <a href="Part14_課程認證測驗.html" class="part-card" style="background: linear-gradient(135deg, #ffd700 0%, #ff6b35 100%);">
+                    <div class="part-number">Part 14</div>
+                    <div class="part-title">課程認證測驗</div>
+                    <div class="part-desc">隨機 10 題 | 80 分及格 | 認證證書下載</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h3>課程資源連結</h3>
+            <p>Course Resources & Community</p>
+            <div class="footer-links">
+                <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="footer-link">Facebook</a>
+                <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="footer-link">YouTube</a>
+                <a href="https://www.facebook.com/groups/2754139931432955?locale=zh_TW" target="_blank" class="footer-link">3A 社團</a>
+            </div>
+            <p style="margin-top: 35px; opacity: 0.85; font-size: 15px;">© 2025 AI 協作簡報實戰工作坊 | Made with 曾慶良(阿亮老師) ❤️</p>
+        </div>
+    </div>
+
+    <script>
+        // 滾動進度條
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('progressBar').style.width = scrolled + '%';
+        });
+    </script>
+</body>
+</html>
